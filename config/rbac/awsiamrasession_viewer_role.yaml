@@ -1,0 +1,23 @@
+# permissions for end users to view awsiamrasessions.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/name: aws-iamra-manager
+    app.kubernetes.io/managed-by: kustomize
+  name: awsiamrasession-viewer-role
+rules:
+- apiGroups:
+  - cloud.dancav.io
+  resources:
+  - awsiamrasessions
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - cloud.dancav.io
+  resources:
+  - awsiamrasessions/status
+  verbs:
+  - get

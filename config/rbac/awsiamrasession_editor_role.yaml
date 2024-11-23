@@ -1,0 +1,27 @@
+# permissions for end users to edit awsiamrasessions.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/name: aws-iamra-manager
+    app.kubernetes.io/managed-by: kustomize
+  name: awsiamrasession-editor-role
+rules:
+- apiGroups:
+  - cloud.dancav.io
+  resources:
+  - awsiamrasessions
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - cloud.dancav.io
+  resources:
+  - awsiamrasessions/status
+  verbs:
+  - get

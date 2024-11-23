@@ -1,0 +1,9 @@
+apiVersion: cloud.dancav.io/v1
+kind: AwsIamRaSession
+metadata:
+  labels:
+    app.kubernetes.io/name: aws-iamra-manager
+    app.kubernetes.io/managed-by: kustomize
+  name: awsiamrasession-sample
+spec:
+  # TODO(user): Add fields here

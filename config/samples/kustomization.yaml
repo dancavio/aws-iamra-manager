@@ -1,0 +1,4 @@
+## Append samples of your project ##
+resources:
+- cloud_v1_awsiamrasession.yaml
+# +kubebuilder:scaffold:manifestskustomizesamples
