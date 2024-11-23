@@ -1,0 +1,64 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.16.4
+  name: awsiamrasessions.cloud.dancav.io
+spec:
+  group: cloud.dancav.io
+  names:
+    kind: AwsIamRaSession
+    listKind: AwsIamRaSessionList
+    plural: awsiamrasessions
+    singular: awsiamrasession
+  scope: Namespaced
+  versions:
+  - name: v1
+    schema:
+      openAPIV3Schema:
+        description: AwsIamRaSession is the Schema for the awsiamrasessions API.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: AwsIamRaSessionSpec defines the desired state of AwsIamRaSession.
+            properties:
+              certSecret:
+                type: string
+              profileArn:
+                type: string
+              region:
+                type: string
+              roleArn:
+                type: string
+              trustAnchorArn:
+                type: string
+            type: object
+          status:
+            description: AwsIamRaSessionStatus defines the observed state of AwsIamRaSession.
+            properties:
+              expirationTime:
+                format: date-time
+                type: string
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

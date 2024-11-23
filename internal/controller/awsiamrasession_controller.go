@@ -18,6 +18,10 @@ package controller
 
 import (
 	"context"
+	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/tools/record"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -30,7 +34,8 @@ import (
 // AwsIamRaSessionReconciler reconciles a AwsIamRaSession object
 type AwsIamRaSessionReconciler struct {
 	client.Client
-	Scheme *runtime.Scheme
+	Scheme   *runtime.Scheme
+	Recorder record.EventRecorder
 }
 
 // +kubebuilder:rbac:groups=cloud.dancav.io,resources=awsiamrasessions,verbs=get;list;watch;create;update;patch;delete
@@ -39,17 +44,40 @@ type AwsIamRaSessionReconciler struct {
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
-// TODO(user): Modify the Reconcile function to compare the state specified by
-// the AwsIamRaSession object against the actual cluster state, and then
-// perform operations to make the cluster state reflect the state specified by
-// the user.
 //
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.19.1/pkg/reconcile
 func (r *AwsIamRaSessionReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	_ = log.FromContext(ctx)
+	logger := log.FromContext(ctx)
 
-	// TODO(user): your logic here
+	var session cloudv1.AwsIamRaSession
+	if err := r.Get(ctx, req.NamespacedName, &session); err != nil {
+		logger.Error(err, "unable to fetch AwsIamRaSession")
+		return ctrl.Result{}, client.IgnoreNotFound(err)
+	}
+
+	certSecretName := session.Spec.CertSecret
+	certSecretRef := types.NamespacedName{
+		Namespace: req.Namespace,
+		Name:      certSecretName,
+	}
+	var certSecret v1.Secret
+	if err := r.Get(ctx, certSecretRef, &certSecret); err != nil {
+		logger.Error(err, "unable to fetch certificate secret",
+			"secretName", certSecretName)
+		r.Recorder.Eventf(&session, v1.EventTypeWarning, "Failed",
+			"Certificate secret \"%s\" does not exist", certSecretName)
+		return ctrl.Result{}, err
+	}
+
+	// TODO: issue creds and do something with them
+	// TODO: emit more useful events, including success
+
+	session.Status.ExpirationTime = metav1.Now()
+	if err := r.Status().Update(ctx, &session); err != nil {
+		logger.Error(err, "unable to update AwsIamRaSession status")
+		return ctrl.Result{}, err
+	}
 
 	return ctrl.Result{}, nil
 }

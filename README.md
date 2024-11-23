@@ -4,6 +4,20 @@
 ## Description
 // TODO(user): An in-depth paragraph about your project and overview of use
 
+## Development notes
+
+To initialize project:
+
+```shell
+kubebuilder init --domain dancavallaro.com --repo dancavallaro.com/aws-iamra-manager
+```
+
+Initialize CRD:
+
+```shell
+kubebuilder create api --group cloud --version v1 --kind AwsIamRaSession
+```
+
 ## Getting Started
 
 ### Prerequisites
