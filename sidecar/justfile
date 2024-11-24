@@ -1,0 +1,24 @@
+registry := "ghcr.io/dancavio"
+name := "aws-iamra-manager"
+version := "latest"
+tag := name + ":" + version
+
+local_platform := "linux/arm64"
+
+@build-local:
+    docker build --load --platform {{local_platform}} -t {{tag}} .
+
+release_version := "0.0.13"
+
+build-multiplatform release="false":
+    #!/usr/bin/env bash
+    push_flag=""
+    [[ "{{release}}" == "true" ]] && push_flag="--push"
+    docker buildx build $push_flag --platform linux/amd64,linux/arm64 \
+        -t {{registry}}/{{name}}:{{release_version}} .
+
+@run entrypoint *ARGS:
+    docker run -it --rm --entrypoint {{entrypoint}} {{tag}} {{ARGS}}
+
+@sign *ARGS:
+    {{just_executable()}} run aws_signing_helper {{ARGS}}

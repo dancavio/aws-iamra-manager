@@ -25,16 +25,28 @@ type ARN string
 // AwsIamRaSessionSpec defines the desired state of AwsIamRaSession.
 type AwsIamRaSessionSpec struct {
 	// TODO: add annotated comments
-	Region         string `json:"region,omitempty"`
-	CertSecret     string `json:"certSecret,omitempty"`
-	TrustAnchorArn ARN    `json:"trustAnchorArn,omitempty"`
-	ProfileArn     ARN    `json:"profileArn,omitempty"`
-	RoleArn        ARN    `json:"roleArn,omitempty"`
+	// +kubebuilder:validation:Required
+	PodSelector metav1.LabelSelector `json:"podSelector,omitempty"`
+	// +kubebuilder:validation:Required
+	CertSecret string `json:"certSecret,omitempty"`
+	// +kubebuilder:validation:Required
+	TrustAnchorArn ARN `json:"trustAnchorArn,omitempty"`
+	// +kubebuilder:validation:Required
+	ProfileArn ARN `json:"profileArn,omitempty"`
+	// +kubebuilder:validation:Required
+	RoleArn ARN `json:"roleArn,omitempty"`
+
+	DurationSeconds int32  `json:"durationSeconds,omitempty"`
+	RoleSessionName string `json:"roleSessionName,omitempty"`
 }
+
+// TODO: use status conditions and add printable columns (e.g. expiration)
+// Some docs: https://github.com/kubernetes/community/blob/master/contributors/devel/sig-architecture/api-conventions.md#typical-status-properties
+// Example: https://github.com/fluxcd/kustomize-controller/blob/8ba6b2028f121c7986aeeee84dd2db0cd5d1a685/api/v1/kustomization_types.go#L294-L295
 
 // AwsIamRaSessionStatus defines the observed state of AwsIamRaSession.
 type AwsIamRaSessionStatus struct {
-	ExpirationTime metav1.Time `json:"expirationTime,omitempty"`
+	ExpirationTimes map[string]metav1.Time `json:"expirationTimes,omitempty"`
 }
 
 // +kubebuilder:object:root=true

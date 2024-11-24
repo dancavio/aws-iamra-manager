@@ -143,9 +143,10 @@ func main() {
 	}
 
 	if err = (&controller.AwsIamRaSessionReconciler{
-		Client:   mgr.GetClient(),
-		Scheme:   mgr.GetScheme(),
-		Recorder: mgr.GetEventRecorderFor("awsiamrasession-controller"),
+		Client:     mgr.GetClient(),
+		Scheme:     mgr.GetScheme(),
+		Recorder:   mgr.GetEventRecorderFor("iamram-controller"),
+		KubeConfig: mgr.GetConfig(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "AwsIamRaSession")
 		os.Exit(1)
