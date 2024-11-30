@@ -53,6 +53,9 @@ const (
 // +kubebuilder:rbac:groups=cloud.dancav.io,resources=awsiamrasessions,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=cloud.dancav.io,resources=awsiamrasessions/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=cloud.dancav.io,resources=awsiamrasessions/finalizers,verbs=update
+// +kubebuilder:rbac:groups=core,resources=events,verbs=create;patch
+// +kubebuilder:rbac:groups=core,resources=secrets;pods,verbs=list;watch;get
+// +kubebuilder:rbac:groups=core,resources=pods/exec,verbs=create
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -107,8 +110,6 @@ func (r *AwsIamRaSessionReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 			"Found no pods matching selector")
 		return ctrl.Result{}, nil
 	}
-
-	// TODO: figure out why the required annotations aren't working
 
 	var nextRequeue *time.Time
 	credsRefreshed := false

@@ -35,8 +35,9 @@ import (
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
-	cloudv1 "dancav.io/aws-iamra-manager/api/v1"
+	"dancav.io/aws-iamra-manager/api/v1"
 	"dancav.io/aws-iamra-manager/internal/controller"
+	webhookv1 "dancav.io/aws-iamra-manager/internal/webhook/v1"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -48,7 +49,7 @@ var (
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 
-	utilruntime.Must(cloudv1.AddToScheme(scheme))
+	utilruntime.Must(v1.AddToScheme(scheme))
 	// +kubebuilder:scaffold:scheme
 }
 
@@ -150,6 +151,13 @@ func main() {
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "AwsIamRaSession")
 		os.Exit(1)
+	}
+	// nolint:goconst
+	if os.Getenv("ENABLE_WEBHOOKS") != "false" {
+		if err = webhookv1.SetupAwsIamRaSessionWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "AwsIamRaSession")
+			os.Exit(1)
+		}
 	}
 	// +kubebuilder:scaffold:builder
 

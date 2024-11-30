@@ -41,9 +41,7 @@ func ReconcilePod(
 		"-t", string(session.Spec.TrustAnchorArn),
 		"-p", string(session.Spec.ProfileArn),
 		"-r", string(session.Spec.RoleArn),
-	}
-	if session.Spec.DurationSeconds > 0 {
-		command = append(command, "-d", strconv.Itoa(int(session.Spec.DurationSeconds)))
+		"-d", strconv.Itoa(int(session.Spec.DurationSeconds)),
 	}
 	roleSessionName := strings.Replace(podRef.String(), "/", "@", 1)
 	if session.Spec.RoleSessionName != "" {

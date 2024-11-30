@@ -17,6 +17,7 @@ limitations under the License.
 package v1
 
 import (
+	aws "github.com/aws/aws-sdk-go-v2/aws/arn"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -38,6 +39,14 @@ type AwsIamRaSessionSpec struct {
 
 	DurationSeconds int32  `json:"durationSeconds,omitempty"`
 	RoleSessionName string `json:"roleSessionName,omitempty"`
+}
+
+func (arn ARN) IsValid() bool {
+	return aws.IsARN(string(arn))
+}
+
+func (arn ARN) Parse() (aws.ARN, error) {
+	return aws.Parse(string(arn))
 }
 
 // TODO: use status conditions and add printable columns (e.g. expiration)

@@ -18,6 +18,12 @@ Initialize CRD:
 kubebuilder create api --group cloud --version v1 --kind AwsIamRaSession
 ```
 
+Scaffold defaulting and validating webhooks:
+
+```shell
+kubebuilder create webhook --group cloud --version v1 --kind AwsIamRaSession --defaulting --programmatic-validation
+```
+
 ## Getting Started
 
 ### Prerequisites

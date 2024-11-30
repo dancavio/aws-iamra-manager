@@ -18,6 +18,8 @@ package controller
 
 import (
 	"context"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/client-go/tools/record"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -25,9 +27,8 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
+	"dancav.io/aws-iamra-manager/api/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	cloudv1 "dancav.io/aws-iamra-manager/api/v1"
 )
 
 var _ = Describe("AwsIamRaSession Controller", func() {
@@ -40,18 +41,30 @@ var _ = Describe("AwsIamRaSession Controller", func() {
 			Name:      resourceName,
 			Namespace: "default", // TODO(user):Modify as needed
 		}
-		awsiamrasession := &cloudv1.AwsIamRaSession{}
+		awsiamrasession := &v1.AwsIamRaSession{}
 
 		BeforeEach(func() {
 			By("creating the custom resource for the Kind AwsIamRaSession")
 			err := k8sClient.Get(ctx, typeNamespacedName, awsiamrasession)
 			if err != nil && errors.IsNotFound(err) {
-				resource := &cloudv1.AwsIamRaSession{
+				certSecret := &corev1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "test-secret",
+						Namespace: "default",
+					},
+				}
+				Expect(k8sClient.Create(ctx, certSecret)).To(Succeed())
+				resource := &v1.AwsIamRaSession{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      resourceName,
 						Namespace: "default",
 					},
-					// TODO(user): Specify other spec details if needed.
+					Spec: v1.AwsIamRaSessionSpec{
+						CertSecret:     "test-secret",
+						TrustAnchorArn: "test-trust-anchor",
+						ProfileArn:     "test-profile",
+						RoleArn:        "test-role",
+					},
 				}
 				Expect(k8sClient.Create(ctx, resource)).To(Succeed())
 			}
@@ -59,18 +72,21 @@ var _ = Describe("AwsIamRaSession Controller", func() {
 
 		AfterEach(func() {
 			// TODO(user): Cleanup logic after each test, like removing the resource instance.
-			resource := &cloudv1.AwsIamRaSession{}
+			resource := &v1.AwsIamRaSession{}
 			err := k8sClient.Get(ctx, typeNamespacedName, resource)
 			Expect(err).NotTo(HaveOccurred())
 
 			By("Cleanup the specific resource instance AwsIamRaSession")
 			Expect(k8sClient.Delete(ctx, resource)).To(Succeed())
 		})
+
 		It("should successfully reconcile the resource", func() {
 			By("Reconciling the created resource")
 			controllerReconciler := &AwsIamRaSessionReconciler{
-				Client: k8sClient,
-				Scheme: k8sClient.Scheme(),
+				Client:     k8sClient,
+				Scheme:     k8sClient.Scheme(),
+				Recorder:   record.NewFakeRecorder(10),
+				KubeConfig: cfg,
 			}
 
 			_, err := controllerReconciler.Reconcile(ctx, reconcile.Request{
