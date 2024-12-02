@@ -32,7 +32,6 @@ import (
 
 const defaultSessionDurationSeconds = 3600
 
-// log is for logging in this package.
 var logger = logf.Log.WithName("awsiamrasession-webhook")
 
 // SetupAwsIamRaSessionWebhookWithManager registers the webhook for AwsIamRaSession in the manager.
@@ -43,18 +42,14 @@ func SetupAwsIamRaSessionWebhookWithManager(mgr ctrl.Manager) error {
 		Complete()
 }
 
-// TODO(user): EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
-
-// +kubebuilder:webhook:path=/mutate-cloud-dancav-io-v1-awsiamrasession,mutating=true,failurePolicy=fail,sideEffects=None,groups=cloud.dancav.io,resources=awsiamrasessions,verbs=create;update,versions=v1,name=mawsiamrasession-v1.kb.io,admissionReviewVersions=v1
+// +kubebuilder:webhook:path=/mutate-cloud-dancav-io-v1-awsiamrasession,mutating=true,failurePolicy=fail,sideEffects=NoneOnDryRun,groups=cloud.dancav.io,resources=awsiamrasessions,verbs=create;update,versions=v1,name=mawsiamrasession-v1.kb.io,admissionReviewVersions=v1
 
 // AwsIamRaSessionCustomDefaulter struct is responsible for setting default values on the custom resource of the
 // Kind AwsIamRaSession when those are created or updated.
 //
 // NOTE: The +kubebuilder:object:generate=false marker prevents controller-gen from generating DeepCopy methods,
 // as it is used only for temporary operations and does not need to be deeply copied.
-type AwsIamRaSessionCustomDefaulter struct {
-	// TODO(user): Add more fields as needed for defaulting
-}
+type AwsIamRaSessionCustomDefaulter struct{}
 
 var _ webhook.CustomDefaulter = &AwsIamRaSessionCustomDefaulter{}
 
@@ -69,12 +64,10 @@ func (d *AwsIamRaSessionCustomDefaulter) Default(_ context.Context, obj runtime.
 	if session.Spec.DurationSeconds == 0 {
 		session.Spec.DurationSeconds = defaultSessionDurationSeconds
 	}
-	// TODO: Support cluster/namespace defaults for profile and trust anchor
 
 	return nil
 }
 
-// TODO(user): change verbs to "verbs=create;update;delete" if you want to enable deletion validation.
 // NOTE: The 'path' attribute must follow a specific pattern and should not be modified directly here.
 // Modifying the path for an invalid path can cause API server errors; failing to locate the webhook.
 // +kubebuilder:webhook:path=/validate-cloud-dancav-io-v1-awsiamrasession,mutating=false,failurePolicy=fail,sideEffects=None,groups=cloud.dancav.io,resources=awsiamrasessions,verbs=create;update,versions=v1,name=vawsiamrasession-v1.kb.io,admissionReviewVersions=v1
@@ -84,9 +77,7 @@ func (d *AwsIamRaSessionCustomDefaulter) Default(_ context.Context, obj runtime.
 //
 // NOTE: The +kubebuilder:object:generate=false marker prevents controller-gen from generating DeepCopy methods,
 // as this struct is used only for temporary operations and does not need to be deeply copied.
-type AwsIamRaSessionCustomValidator struct {
-	//TODO(user): Add more fields as needed for validation
-}
+type AwsIamRaSessionCustomValidator struct{}
 
 var _ webhook.CustomValidator = &AwsIamRaSessionCustomValidator{}
 
@@ -116,11 +107,9 @@ func (v *AwsIamRaSessionCustomValidator) ValidateDelete(_ context.Context, obj r
 	if !ok {
 		return nil, fmt.Errorf("expected an AwsIamRaSession object but got %T", obj)
 	}
-	// TODO: Is there any validation to do here on deletion?
 	return nil, nil
 }
 
-// TODO: Is this where I should do more of the validation that's in the controller, like existence of the cert secret?
 func validateSession(_ context.Context, session *v1.AwsIamRaSession) (admission.Warnings, error) {
 	taRegion, taErr := validateARN(field.NewPath("spec").Child("trustAnchorArn"), session.Spec.TrustAnchorArn)
 	profRegion, profErr := validateARN(field.NewPath("spec").Child("profileArn"), session.Spec.ProfileArn)

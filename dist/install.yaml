@@ -1,0 +1,465 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: aws-iamra-manager
+    control-plane: controller-manager
+  name: aws-iamram-system
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.16.4
+  name: awsiamrasessions.cloud.dancav.io
+spec:
+  group: cloud.dancav.io
+  names:
+    kind: AwsIamRaSession
+    listKind: AwsIamRaSessionList
+    plural: awsiamrasessions
+    singular: awsiamrasession
+  scope: Namespaced
+  versions:
+  - name: v1
+    schema:
+      openAPIV3Schema:
+        description: AwsIamRaSession is the Schema for the awsiamrasessions API.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: AwsIamRaSessionSpec defines the desired state of AwsIamRaSession.
+            properties:
+              durationSeconds:
+                format: int32
+                type: integer
+              profileArn:
+                type: string
+              roleArn:
+                type: string
+              roleSessionName:
+                type: string
+              trustAnchorArn:
+                type: string
+            required:
+            - profileArn
+            - roleArn
+            - trustAnchorArn
+            type: object
+          status:
+            description: AwsIamRaSessionStatus defines the observed state of AwsIamRaSession.
+            properties:
+              expirationTimes:
+                additionalProperties:
+                  format: date-time
+                  type: string
+                type: object
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: aws-iamra-manager
+  name: aws-iamram-controller-manager
+  namespace: aws-iamram-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: aws-iamra-manager
+  name: aws-iamram-leader-election-role
+  namespace: aws-iamram-system
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - coordination.k8s.io
+  resources:
+  - leases
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - create
+  - patch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: aws-iamra-manager
+  name: aws-iamram-awsiamrasession-editor-role
+rules:
+- apiGroups:
+  - cloud.dancav.io
+  resources:
+  - awsiamrasessions
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - cloud.dancav.io
+  resources:
+  - awsiamrasessions/status
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: aws-iamra-manager
+  name: aws-iamram-awsiamrasession-viewer-role
+rules:
+- apiGroups:
+  - cloud.dancav.io
+  resources:
+  - awsiamrasessions
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - cloud.dancav.io
+  resources:
+  - awsiamrasessions/status
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: aws-iamram-manager-role
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - create
+  - patch
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - pods/exec
+  verbs:
+  - create
+- apiGroups:
+  - cloud.dancav.io
+  resources:
+  - awsiamrasessions
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - cloud.dancav.io
+  resources:
+  - awsiamrasessions/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - cloud.dancav.io
+  resources:
+  - awsiamrasessions/status
+  verbs:
+  - get
+  - patch
+  - update
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: aws-iamra-manager
+  name: aws-iamram-leader-election-rolebinding
+  namespace: aws-iamram-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: aws-iamram-leader-election-role
+subjects:
+- kind: ServiceAccount
+  name: aws-iamram-controller-manager
+  namespace: aws-iamram-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: aws-iamra-manager
+  name: aws-iamram-manager-rolebinding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: aws-iamram-manager-role
+subjects:
+- kind: ServiceAccount
+  name: aws-iamram-controller-manager
+  namespace: aws-iamram-system
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: aws-iamra-manager
+  name: aws-iamram-webhook-service
+  namespace: aws-iamram-system
+spec:
+  ports:
+  - port: 443
+    protocol: TCP
+    targetPort: 9443
+  selector:
+    control-plane: controller-manager
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: aws-iamra-manager
+    control-plane: controller-manager
+  name: aws-iamram-controller-manager
+  namespace: aws-iamram-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      control-plane: controller-manager
+  template:
+    metadata:
+      annotations:
+        kubectl.kubernetes.io/default-container: manager
+      labels:
+        control-plane: controller-manager
+    spec:
+      containers:
+      - args:
+        - --leader-elect
+        - --health-probe-bind-address=:8081
+        command:
+        - /manager
+        image: ghcr.io/dancavio/aws-iamra-manager/controller:0.1.14
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8081
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        name: manager
+        ports:
+        - containerPort: 9443
+          name: webhook-server
+          protocol: TCP
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: 8081
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        resources:
+          limits:
+            cpu: 500m
+            memory: 128Mi
+          requests:
+            cpu: 10m
+            memory: 64Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+        volumeMounts:
+        - mountPath: /tmp/k8s-webhook-server/serving-certs
+          name: cert
+          readOnly: true
+      securityContext:
+        runAsNonRoot: true
+      serviceAccountName: aws-iamram-controller-manager
+      terminationGracePeriodSeconds: 10
+      volumes:
+      - name: cert
+        secret:
+          defaultMode: 420
+          secretName: webhook-server-cert
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  labels:
+    app.kubernetes.io/component: certificate
+    app.kubernetes.io/created-by: aws-iamra-manager
+    app.kubernetes.io/instance: serving-cert
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: certificate
+    app.kubernetes.io/part-of: aws-iamra-manager
+  name: aws-iamram-serving-cert
+  namespace: aws-iamram-system
+spec:
+  dnsNames:
+  - aws-iamram-webhook-service.aws-iamram-system.svc
+  - aws-iamram-webhook-service.aws-iamram-system.svc.cluster.local
+  issuerRef:
+    kind: Issuer
+    name: aws-iamram-selfsigned-issuer
+  secretName: webhook-server-cert
+---
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: aws-iamra-manager
+  name: aws-iamram-selfsigned-issuer
+  namespace: aws-iamram-system
+spec:
+  selfSigned: {}
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingWebhookConfiguration
+metadata:
+  annotations:
+    cert-manager.io/inject-ca-from: aws-iamram-system/aws-iamram-serving-cert
+  name: aws-iamram-mutating-webhook-configuration
+webhooks:
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: aws-iamram-webhook-service
+      namespace: aws-iamram-system
+      path: /mutate--v1-pod
+  failurePolicy: Fail
+  name: mpod-v1.kb.io
+  objectSelector:
+    matchExpressions:
+    - key: app.kubernetes.io/name
+      operator: NotIn
+      values:
+      - aws-iamra-manager
+  rules:
+  - apiGroups:
+    - ""
+    apiVersions:
+    - v1
+    operations:
+    - CREATE
+    resources:
+    - pods
+  sideEffects: NoneOnDryRun
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: aws-iamram-webhook-service
+      namespace: aws-iamram-system
+      path: /mutate-cloud-dancav-io-v1-awsiamrasession
+  failurePolicy: Fail
+  name: mawsiamrasession-v1.kb.io
+  rules:
+  - apiGroups:
+    - cloud.dancav.io
+    apiVersions:
+    - v1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - awsiamrasessions
+  sideEffects: NoneOnDryRun
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+metadata:
+  annotations:
+    cert-manager.io/inject-ca-from: aws-iamram-system/aws-iamram-serving-cert
+  name: aws-iamram-validating-webhook-configuration
+webhooks:
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: aws-iamram-webhook-service
+      namespace: aws-iamram-system
+      path: /validate-cloud-dancav-io-v1-awsiamrasession
+  failurePolicy: Fail
+  name: vawsiamrasession-v1.kb.io
+  rules:
+  - apiGroups:
+    - cloud.dancav.io
+    apiVersions:
+    - v1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - awsiamrasessions
+  sideEffects: None

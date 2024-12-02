@@ -23,8 +23,6 @@ import (
 	"fmt"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/record"
@@ -46,7 +44,6 @@ type AwsIamRaSessionReconciler struct {
 
 const (
 	reasonInactive = "Inactive"
-	reasonFailed   = "Failed"
 	reasonUpdated  = "Updated"
 )
 
@@ -54,7 +51,7 @@ const (
 // +kubebuilder:rbac:groups=cloud.dancav.io,resources=awsiamrasessions/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=cloud.dancav.io,resources=awsiamrasessions/finalizers,verbs=update
 // +kubebuilder:rbac:groups=core,resources=events,verbs=create;patch
-// +kubebuilder:rbac:groups=core,resources=secrets;pods,verbs=list;watch;get
+// +kubebuilder:rbac:groups=core,resources=pods,verbs=list;watch;get
 // +kubebuilder:rbac:groups=core,resources=pods/exec,verbs=create
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
@@ -71,33 +68,14 @@ func (r *AwsIamRaSessionReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	certSecretName := session.Spec.CertSecret
-	certSecretRef := types.NamespacedName{
-		Namespace: req.Namespace,
-		Name:      certSecretName,
-	}
-	var certSecret corev1.Secret
-	if err := r.Get(ctx, certSecretRef, &certSecret); err != nil {
-		logger.Error(err, "unable to fetch certificate secret",
-			"secretName", certSecretName)
-		r.Recorder.Eventf(&session, corev1.EventTypeWarning, reasonFailed,
-			"Certificate secret \"%s\" does not exist", certSecretName)
-		return ctrl.Result{}, err
-	}
-
 	k, err := kubernetes.NewForConfig(r.KubeConfig)
 	if err != nil {
 		logger.Error(err, "unable to create clientset")
 		return ctrl.Result{}, err
 	}
 
-	labelMap, err := metav1.LabelSelectorAsMap(&session.Spec.PodSelector)
-	if err != nil {
-		logger.Error(err, "unable to process label selectors")
-		return ctrl.Result{}, err
-	}
 	listOps := metav1.ListOptions{
-		LabelSelector: labels.SelectorFromSet(labelMap).String(),
+		LabelSelector: fmt.Sprintf("%s=%s", v1.SessionNamePodLabelKey, session.Name),
 	}
 	podList, err := k.CoreV1().Pods(req.Namespace).List(ctx, listOps)
 	if err != nil {

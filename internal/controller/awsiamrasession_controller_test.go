@@ -60,7 +60,6 @@ var _ = Describe("AwsIamRaSession Controller", func() {
 						Namespace: "default",
 					},
 					Spec: v1.AwsIamRaSessionSpec{
-						CertSecret:     "test-secret",
 						TrustAnchorArn: "test-trust-anchor",
 						ProfileArn:     "test-profile",
 						RoleArn:        "test-role",

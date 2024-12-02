@@ -24,6 +24,12 @@ Scaffold defaulting and validating webhooks:
 kubebuilder create webhook --group cloud --version v1 --kind AwsIamRaSession --defaulting --programmatic-validation
 ```
 
+Pod injection webhook:
+
+```shell
+kubebuilder create webhook --group core --version v1 --kind Pod --defaulting
+```
+
 ## Getting Started
 
 ### Prerequisites

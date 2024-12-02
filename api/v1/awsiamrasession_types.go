@@ -21,15 +21,17 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+const (
+	SessionNamePodLabelKey = "cloud.dancav.io/aws-iamra-session-name"
+	CertSecretPodLabelKey  = "cloud.dancav.io/aws-iamra-cert-secret"
+)
+
 type ARN string
 
 // AwsIamRaSessionSpec defines the desired state of AwsIamRaSession.
 type AwsIamRaSessionSpec struct {
-	// TODO: add annotated comments
-	// +kubebuilder:validation:Required
-	PodSelector metav1.LabelSelector `json:"podSelector,omitempty"`
-	// +kubebuilder:validation:Required
-	CertSecret string `json:"certSecret,omitempty"`
+	// TODO: add more annotated comments
+
 	// +kubebuilder:validation:Required
 	TrustAnchorArn ARN `json:"trustAnchorArn,omitempty"`
 	// +kubebuilder:validation:Required
