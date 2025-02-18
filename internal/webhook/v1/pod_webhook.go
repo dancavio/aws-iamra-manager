@@ -20,6 +20,8 @@ import (
 	"context"
 	"dancav.io/aws-iamra-manager/api/v1"
 	"fmt"
+	certv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -46,7 +48,9 @@ var (
 // SetupPodWebhookWithManager registers the webhook for Pod in the manager.
 func SetupPodWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).For(&corev1.Pod{}).
-		WithDefaulter(&PodCustomDefaulter{}).
+		WithDefaulter(&PodCustomDefaulter{
+			client: mgr.GetClient(),
+		}).
 		Complete()
 }
 
@@ -57,12 +61,14 @@ func SetupPodWebhookWithManager(mgr ctrl.Manager) error {
 //
 // NOTE: The +kubebuilder:object:generate=false marker prevents controller-gen from generating DeepCopy methods,
 // as it is used only for temporary operations and does not need to be deeply copied.
-type PodCustomDefaulter struct{}
+type PodCustomDefaulter struct {
+	client client.Client
+}
 
 var _ webhook.CustomDefaulter = &PodCustomDefaulter{}
 
 // Default implements webhook.CustomDefaulter so a webhook will be registered for the Kind Pod.
-func (d *PodCustomDefaulter) Default(_ context.Context, obj runtime.Object) error {
+func (d *PodCustomDefaulter) Default(ctx context.Context, obj runtime.Object) error {
 	pod, ok := obj.(*corev1.Pod)
 	if !ok {
 		return fmt.Errorf("expected an Pod object but got %T", obj)
@@ -73,13 +79,18 @@ func (d *PodCustomDefaulter) Default(_ context.Context, obj runtime.Object) erro
 	if sessionName, ok := pod.Labels[v1.SessionNamePodLabelKey]; ok {
 		podlog.Info("Injecting AWS IAM RA session manager into new pod",
 			"sessionName", v1.SessionNamePodLabelKey)
-		return mutatePodSpec(pod, sessionName)
+		return d.mutatePodSpec(ctx, pod, sessionName)
 	}
 
 	return nil
 }
 
-func mutatePodSpec(pod *corev1.Pod, sessionName string) error {
+func (d *PodCustomDefaulter) mutatePodSpec(ctx context.Context, pod *corev1.Pod, sessionName string) error {
+	err := d.client.Create(ctx, &certv1.Certificate{})
+	if err != nil {
+		return fmt.Errorf("error creating certificate: %w", err)
+	}
+
 	var certSecretName string
 	var ok bool
 	if certSecretName, ok = pod.Labels[v1.CertSecretPodLabelKey]; !ok {
