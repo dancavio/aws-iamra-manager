@@ -1,5 +1,8 @@
 # aws-iamra-manager
-// TODO(user): Add simple overview of use/purpose
+
+## TODOs
+
+* Consider switching to the IMDS approach described here: https://aws.amazon.com/blogs/security/connect-your-on-premises-kubernetes-cluster-to-aws-apis-using-iam-roles-anywhere/
 
 ## Description
 // TODO(user): An in-depth paragraph about your project and overview of use

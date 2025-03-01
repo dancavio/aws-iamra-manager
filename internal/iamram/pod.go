@@ -98,6 +98,7 @@ func ReconcilePod(
 			"expiration", stdout.String())
 		return nil, false, err
 	}
+	// TODO: do i need to delete entries for pods that no longer exist?
 	session.Status.ExpirationTimes[podRef.String()] = metav1.NewTime(newExpiration)
 
 	return &newExpiration, true, nil

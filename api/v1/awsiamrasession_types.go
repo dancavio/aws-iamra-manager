@@ -22,6 +22,7 @@ import (
 )
 
 const (
+	// TODO: should be annotations instead of labels?
 	SessionNamePodLabelKey = "cloud.dancav.io/aws-iamra-session-name"
 	CertSecretPodLabelKey  = "cloud.dancav.io/aws-iamra-cert-secret"
 )
