@@ -31,11 +31,9 @@ import (
 const (
 	certSecretVolumeName = "aws-iamra-cert-secret"
 	// TODO: this should be configurable
-	sidecarContainerImage      = "ghcr.io/dancavio/aws-iamra-manager/sidecar:0.1.0"
-	sidecarContainerName       = "aws-iamra-manager"
-	sidecarCredentialMountPath = "/iamram/certs"
-	// TODO: make this configurable, but with a default
-	defaultCredentialMountPath = "/root/.aws"
+	sidecarContainerImage = "ghcr.io/dancavio/aws-iamra-manager/sidecar:0.2.0"
+	sidecarContainerName  = "aws-iamra-manager"
+	sidecarCertMountPath  = "/iamram/certs"
 )
 
 var (
@@ -66,33 +64,27 @@ var _ webhook.CustomDefaulter = &PodCustomDefaulter{}
 func (d *PodCustomDefaulter) Default(_ context.Context, obj runtime.Object) error {
 	pod, ok := obj.(*corev1.Pod)
 	if !ok {
-		return fmt.Errorf("expected an Pod object but got %T", obj)
+		return fmt.Errorf("expected a Pod object but got %T", obj)
 	}
 
-	podlog.Info("Defaulting for Pod", "name", pod.Name, "labels", pod.Labels)
+	podlog.Info("Defaulting for pod", "name", pod.Name)
 
-	if sessionName, ok := pod.Labels[v1.SessionNamePodLabelKey]; ok {
+	if sessionName, ok := pod.Annotations[v1.SessionNamePodAnnotationKey]; ok {
 		podlog.Info("Injecting AWS IAM RA session manager into new pod",
-			"sessionName", v1.SessionNamePodLabelKey)
-		return mutatePodSpec(pod, sessionName)
+			"sessionName", sessionName)
+		return mutatePodSpec(pod)
 	}
 
 	return nil
 }
 
-func mutatePodSpec(pod *corev1.Pod, sessionName string) error {
+func mutatePodSpec(pod *corev1.Pod) error {
 	var certSecretName string
 	var ok bool
-	if certSecretName, ok = pod.Labels[v1.CertSecretPodLabelKey]; !ok {
-		return fmt.Errorf("must specify label %s", v1.CertSecretPodLabelKey)
+	if certSecretName, ok = pod.Annotations[v1.CertSecretPodAnnotationKey]; !ok {
+		return fmt.Errorf("must specify annotation %s", v1.CertSecretPodAnnotationKey)
 	}
 	pod.Spec.Volumes = append(pod.Spec.Volumes,
-		corev1.Volume{
-			Name: sessionName,
-			VolumeSource: corev1.VolumeSource{
-				EmptyDir: &corev1.EmptyDirVolumeSource{},
-			},
-		},
 		corev1.Volume{
 			Name: certSecretVolumeName,
 			VolumeSource: corev1.VolumeSource{
@@ -102,37 +94,28 @@ func mutatePodSpec(pod *corev1.Pod, sessionName string) error {
 			},
 		},
 	)
-	// TODO: Support selecting a specific container
-	for i := range pod.Spec.Containers {
-		container := &pod.Spec.Containers[i]
-		container.VolumeMounts = append(container.VolumeMounts, corev1.VolumeMount{
-			Name:      sessionName,
-			ReadOnly:  true,
-			MountPath: defaultCredentialMountPath, // TODO: Allow this to be configurable
-		})
-		podlog.Info("Injected credential volume into container", "containerName", container.Name)
-	}
-	injectSidecar(pod, sessionName)
+	//for i := range pod.Spec.Containers {
+	//	container := &pod.Spec.Containers[i]
+	//	// TODO: set the necessary AWS env vars
+	//	//podlog.Info("Injected credential volume into container", "containerName", container.Name)
+	//}
+	injectSidecar(pod)
 
 	return nil
 }
 
-func injectSidecar(pod *corev1.Pod, sessionName string) {
+func injectSidecar(pod *corev1.Pod) {
 	pod.Spec.InitContainers = append(pod.Spec.InitContainers, corev1.Container{
 		Name:          sidecarContainerName,
 		Image:         sidecarContainerImage,
 		RestartPolicy: &sidecarContainerRestartPolicy,
-		Command:       []string{"sleep", "infinity"},
+		// TODO: set the update-credentials command
+		Command: []string{"sleep", "infinity"},
 		VolumeMounts: []corev1.VolumeMount{
-			{
-				Name:      sessionName,
-				ReadOnly:  false,
-				MountPath: defaultCredentialMountPath,
-			},
 			{
 				Name:      certSecretVolumeName,
 				ReadOnly:  true,
-				MountPath: sidecarCredentialMountPath,
+				MountPath: sidecarCertMountPath,
 			},
 		},
 	})

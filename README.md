@@ -52,6 +52,13 @@ Then:
    * TODO: The sidecar version should be configurable in the controller so it 
      doesn't require releasing a new build.
 
+### Updating controller
+
+1. Update the image version by updating the `IMG` variable in the Makefile.
+2. Build the controller: `make all`
+3. Build and publish multi-platform image: `make docker-buildx`
+4. Update the install manifest (`dist/install.yaml`): `make build-installer`
+
 ## Getting Started
 
 ### Prerequisites
