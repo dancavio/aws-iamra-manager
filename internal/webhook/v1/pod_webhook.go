@@ -20,21 +20,22 @@ import (
 	"context"
 	"dancav.io/aws-iamra-manager/api/v1"
 	"fmt"
-
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
+	"strconv"
 )
 
 const (
-	certSecretVolumeName       = "aws-iamra-cert-secret"
-	sidecarContainerImage      = "ghcr.io/dancavio/aws-iamra-manager/sidecar:0.1.0"
-	sidecarContainerName       = "aws-iamra-manager"
-	sidecarCredentialMountPath = "/iamram/certs"
-	// TODO: make this configurable, but with a default
-	defaultCredentialMountPath = "/root/.aws"
+	certSecretVolumeName = "aws-iamra-cert-secret"
+	// TODO: this should be configurable
+	sidecarContainerImage = "ghcr.io/dancavio/aws-iamra-manager/sidecar:0.2.0"
+	sidecarContainerName  = "aws-iamra-manager"
+	sidecarCertMountPath  = "/iamram/certs"
 )
 
 var (
@@ -46,7 +47,9 @@ var (
 // SetupPodWebhookWithManager registers the webhook for Pod in the manager.
 func SetupPodWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).For(&corev1.Pod{}).
-		WithDefaulter(&PodCustomDefaulter{}).
+		WithDefaulter(&PodCustomDefaulter{
+			client: mgr.GetClient(),
+		}).
 		Complete()
 }
 
@@ -57,41 +60,37 @@ func SetupPodWebhookWithManager(mgr ctrl.Manager) error {
 //
 // NOTE: The +kubebuilder:object:generate=false marker prevents controller-gen from generating DeepCopy methods,
 // as it is used only for temporary operations and does not need to be deeply copied.
-type PodCustomDefaulter struct{}
+type PodCustomDefaulter struct {
+	client client.Client
+}
 
 var _ webhook.CustomDefaulter = &PodCustomDefaulter{}
 
 // Default implements webhook.CustomDefaulter so a webhook will be registered for the Kind Pod.
-func (d *PodCustomDefaulter) Default(_ context.Context, obj runtime.Object) error {
+func (d *PodCustomDefaulter) Default(ctx context.Context, obj runtime.Object) error {
 	pod, ok := obj.(*corev1.Pod)
 	if !ok {
-		return fmt.Errorf("expected an Pod object but got %T", obj)
+		return fmt.Errorf("expected a Pod object but got %T", obj)
 	}
 
-	podlog.Info("Defaulting for Pod", "name", pod.Name, "labels", pod.Labels)
+	podlog.Info("Defaulting for new pod")
 
-	if sessionName, ok := pod.Labels[v1.SessionNamePodLabelKey]; ok {
+	if sessionName, ok := pod.Annotations[v1.SessionNamePodAnnotationKey]; ok {
 		podlog.Info("Injecting AWS IAM RA session manager into new pod",
-			"sessionName", v1.SessionNamePodLabelKey)
-		return mutatePodSpec(pod, sessionName)
+			"sessionName", sessionName)
+		return d.mutatePodSpec(ctx, pod, sessionName)
 	}
 
 	return nil
 }
 
-func mutatePodSpec(pod *corev1.Pod, sessionName string) error {
+func (d *PodCustomDefaulter) mutatePodSpec(ctx context.Context, pod *corev1.Pod, sessionName string) error {
 	var certSecretName string
 	var ok bool
-	if certSecretName, ok = pod.Labels[v1.CertSecretPodLabelKey]; !ok {
-		return fmt.Errorf("must specify label %s", v1.CertSecretPodLabelKey)
+	if certSecretName, ok = pod.Annotations[v1.CertSecretPodAnnotationKey]; !ok {
+		return fmt.Errorf("must specify annotation %s", v1.CertSecretPodAnnotationKey)
 	}
 	pod.Spec.Volumes = append(pod.Spec.Volumes,
-		corev1.Volume{
-			Name: sessionName,
-			VolumeSource: corev1.VolumeSource{
-				EmptyDir: &corev1.EmptyDirVolumeSource{},
-			},
-		},
 		corev1.Volume{
 			Name: certSecretVolumeName,
 			VolumeSource: corev1.VolumeSource{
@@ -101,38 +100,56 @@ func mutatePodSpec(pod *corev1.Pod, sessionName string) error {
 			},
 		},
 	)
-	// TODO: Support selecting a specific container
+
 	for i := range pod.Spec.Containers {
 		container := &pod.Spec.Containers[i]
-		container.VolumeMounts = append(container.VolumeMounts, corev1.VolumeMount{
-			Name:      sessionName,
-			ReadOnly:  true,
-			MountPath: defaultCredentialMountPath, // TODO: Allow this to be configurable
+		container.Env = append(container.Env, corev1.EnvVar{
+			Name:  "AWS_EC2_METADATA_SERVICE_ENDPOINT",
+			Value: "http://127.0.0.1:9911/",
 		})
-		podlog.Info("Injected credential volume into container", "containerName", container.Name)
 	}
-	injectSidecar(pod, sessionName)
 
-	return nil
+	return d.injectSidecar(ctx, pod, sessionName)
 }
 
-func injectSidecar(pod *corev1.Pod, sessionName string) {
+func (d *PodCustomDefaulter) injectSidecar(ctx context.Context, pod *corev1.Pod, sessionName string) error {
+	sessionNsName := types.NamespacedName{
+		Namespace: pod.Namespace,
+		Name:      sessionName,
+	}
+	var session v1.AwsIamRaSession
+	if err := d.client.Get(ctx, sessionNsName, &session); err != nil {
+		logger.Info("unable to fetch AwsIamRaSession")
+		return err
+	}
+	// TODO: should be podLog, not logger (few other instances here too)
+	logger.Info("found AwsIamRaSession object, injecting sidecar now")
+
+	command := []string{
+		"update-credentials",
+		"-t", string(session.Spec.TrustAnchorArn),
+		"-p", string(session.Spec.ProfileArn),
+		"-r", string(session.Spec.RoleArn),
+		"-d", strconv.Itoa(int(session.Spec.DurationSeconds)),
+	}
+	if session.Spec.RoleSessionName != "" {
+		command = append(command, "-n", session.Spec.RoleSessionName)
+	}
+
+	logger.Info("creating sidecar container", "command", command)
 	pod.Spec.InitContainers = append(pod.Spec.InitContainers, corev1.Container{
 		Name:          sidecarContainerName,
 		Image:         sidecarContainerImage,
 		RestartPolicy: &sidecarContainerRestartPolicy,
-		Command:       []string{"sleep", "infinity"},
+		Command:       command,
 		VolumeMounts: []corev1.VolumeMount{
-			{
-				Name:      sessionName,
-				ReadOnly:  false,
-				MountPath: defaultCredentialMountPath,
-			},
 			{
 				Name:      certSecretVolumeName,
 				ReadOnly:  true,
-				MountPath: sidecarCredentialMountPath,
+				MountPath: sidecarCertMountPath,
 			},
 		},
 	})
+
+	return nil
 }

@@ -4,10 +4,9 @@
 
 * Consider switching to the IMDS approach described here: https://aws.amazon.com/blogs/security/connect-your-on-premises-kubernetes-cluster-to-aws-apis-using-iam-roles-anywhere/
 
-## Description
-// TODO(user): An in-depth paragraph about your project and overview of use
-
 ## Development notes
+
+### kubebuilder init
 
 To initialize project:
 
@@ -32,6 +31,33 @@ Pod injection webhook:
 ```shell
 kubebuilder create webhook --group core --version v1 --kind Pod --defaulting
 ```
+
+### Updating sidecar container
+
+To build multi-platform images I first needed to create a customer builder:
+
+```shell
+docker buildx create \
+  --name multiplatbuilder \
+  --driver docker-container \
+  --bootstrap --use
+```
+
+Then:
+
+1. Update `release_version` in justfile to release a new version.
+2. Then build and push to GitHub: `just build-multiplatform true`.
+3. To start using the new sidecar container, need to update the version in 
+   `pod_webhook.go`, and release a new version of the controller.
+   * TODO: The sidecar version should be configurable in the controller so it 
+     doesn't require releasing a new build.
+
+### Updating controller
+
+1. Update the image version by updating the `IMG` variable in the Makefile.
+2. Build the controller: `make all`
+3. Build and publish multi-platform image: `make docker-buildx`
+4. Update the install manifest (`dist/install.yaml`): `make build-installer`
 
 ## Getting Started
 

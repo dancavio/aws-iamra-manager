@@ -307,7 +307,7 @@ spec:
         - --health-probe-bind-address=:8081
         command:
         - /manager
-        image: ghcr.io/dancavio/aws-iamra-manager/controller:0.1.14
+        image: ghcr.io/dancavio/aws-iamra-manager/controller:0.2.4
         livenessProbe:
           httpGet:
             path: /healthz

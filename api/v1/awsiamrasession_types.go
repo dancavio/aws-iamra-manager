@@ -22,9 +22,8 @@ import (
 )
 
 const (
-	// TODO: should be annotations instead of labels?
-	SessionNamePodLabelKey = "cloud.dancav.io/aws-iamra-session-name"
-	CertSecretPodLabelKey  = "cloud.dancav.io/aws-iamra-cert-secret"
+	SessionNamePodAnnotationKey = "cloud.dancav.io/aws-iamra-session-name"
+	CertSecretPodAnnotationKey  = "cloud.dancav.io/aws-iamra-cert-secret"
 )
 
 type ARN string
@@ -58,6 +57,7 @@ func (arn ARN) Parse() (aws.ARN, error) {
 
 // AwsIamRaSessionStatus defines the observed state of AwsIamRaSession.
 type AwsIamRaSessionStatus struct {
+	// TODO: don't need this anymore; maybe list of pods using session?
 	ExpirationTimes map[string]metav1.Time `json:"expirationTimes,omitempty"`
 }
 
