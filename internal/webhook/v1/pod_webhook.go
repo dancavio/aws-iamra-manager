@@ -20,6 +20,8 @@ import (
 	"context"
 	"dancav.io/aws-iamra-manager/api/v1"
 	"fmt"
+	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -45,7 +47,9 @@ var (
 // SetupPodWebhookWithManager registers the webhook for Pod in the manager.
 func SetupPodWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).For(&corev1.Pod{}).
-		WithDefaulter(&PodCustomDefaulter{}).
+		WithDefaulter(&PodCustomDefaulter{
+			client: mgr.GetClient(),
+		}).
 		Complete()
 }
 
@@ -56,29 +60,31 @@ func SetupPodWebhookWithManager(mgr ctrl.Manager) error {
 //
 // NOTE: The +kubebuilder:object:generate=false marker prevents controller-gen from generating DeepCopy methods,
 // as it is used only for temporary operations and does not need to be deeply copied.
-type PodCustomDefaulter struct{}
+type PodCustomDefaulter struct {
+	client client.Client
+}
 
 var _ webhook.CustomDefaulter = &PodCustomDefaulter{}
 
 // Default implements webhook.CustomDefaulter so a webhook will be registered for the Kind Pod.
-func (d *PodCustomDefaulter) Default(_ context.Context, obj runtime.Object) error {
+func (d *PodCustomDefaulter) Default(ctx context.Context, obj runtime.Object) error {
 	pod, ok := obj.(*corev1.Pod)
 	if !ok {
 		return fmt.Errorf("expected a Pod object but got %T", obj)
 	}
 
-	podlog.Info("Defaulting for pod", "name", pod.Name)
+	podlog.Info("Defaulting for new pod")
 
 	if sessionName, ok := pod.Annotations[v1.SessionNamePodAnnotationKey]; ok {
 		podlog.Info("Injecting AWS IAM RA session manager into new pod",
 			"sessionName", sessionName)
-		return mutatePodSpec(pod)
+		return d.mutatePodSpec(ctx, pod, sessionName)
 	}
 
 	return nil
 }
 
-func mutatePodSpec(pod *corev1.Pod) error {
+func (d *PodCustomDefaulter) mutatePodSpec(ctx context.Context, pod *corev1.Pod, sessionName string) error {
 	var certSecretName string
 	var ok bool
 	if certSecretName, ok = pod.Annotations[v1.CertSecretPodAnnotationKey]; !ok {
@@ -99,12 +105,22 @@ func mutatePodSpec(pod *corev1.Pod) error {
 	//	// TODO: set the necessary AWS env vars
 	//	//podlog.Info("Injected credential volume into container", "containerName", container.Name)
 	//}
-	injectSidecar(pod)
 
-	return nil
+	return d.injectSidecar(ctx, pod, sessionName)
 }
 
-func injectSidecar(pod *corev1.Pod) {
+func (d *PodCustomDefaulter) injectSidecar(ctx context.Context, pod *corev1.Pod, sessionName string) error {
+	sessionNsName := types.NamespacedName{
+		Namespace: pod.Namespace,
+		Name:      sessionName,
+	}
+	var session v1.AwsIamRaSession
+	if err := d.client.Get(ctx, sessionNsName, &session); err != nil {
+		logger.Info("unable to fetch AwsIamRaSession")
+		return err
+	}
+	logger.Info("found AwsIamRaSession object, injecting sidecar now")
+
 	pod.Spec.InitContainers = append(pod.Spec.InitContainers, corev1.Container{
 		Name:          sidecarContainerName,
 		Image:         sidecarContainerImage,
@@ -119,4 +135,6 @@ func injectSidecar(pod *corev1.Pod) {
 			},
 		},
 	})
+
+	return nil
 }
