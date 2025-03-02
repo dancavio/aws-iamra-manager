@@ -29,7 +29,8 @@ import (
 )
 
 const (
-	certSecretVolumeName       = "aws-iamra-cert-secret"
+	certSecretVolumeName = "aws-iamra-cert-secret"
+	// TODO: this should be configurable
 	sidecarContainerImage      = "ghcr.io/dancavio/aws-iamra-manager/sidecar:0.1.0"
 	sidecarContainerName       = "aws-iamra-manager"
 	sidecarCredentialMountPath = "/iamram/certs"
