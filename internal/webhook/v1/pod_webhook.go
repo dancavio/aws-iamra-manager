@@ -20,14 +20,14 @@ import (
 	"context"
 	"dancav.io/aws-iamra-manager/api/v1"
 	"fmt"
-	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
+	"strconv"
 )
 
 const (
@@ -100,11 +100,14 @@ func (d *PodCustomDefaulter) mutatePodSpec(ctx context.Context, pod *corev1.Pod,
 			},
 		},
 	)
-	//for i := range pod.Spec.Containers {
-	//	container := &pod.Spec.Containers[i]
-	//	// TODO: set the necessary AWS env vars
-	//	//podlog.Info("Injected credential volume into container", "containerName", container.Name)
-	//}
+
+	for i := range pod.Spec.Containers {
+		container := &pod.Spec.Containers[i]
+		container.Env = append(container.Env, corev1.EnvVar{
+			Name:  "AWS_EC2_METADATA_SERVICE_ENDPOINT",
+			Value: "http://127.0.0.1:9911/",
+		})
+	}
 
 	return d.injectSidecar(ctx, pod, sessionName)
 }
@@ -121,12 +124,23 @@ func (d *PodCustomDefaulter) injectSidecar(ctx context.Context, pod *corev1.Pod,
 	}
 	logger.Info("found AwsIamRaSession object, injecting sidecar now")
 
+	command := []string{
+		"update-credentials",
+		"-t", string(session.Spec.TrustAnchorArn),
+		"-p", string(session.Spec.ProfileArn),
+		"-r", string(session.Spec.RoleArn),
+		"-d", strconv.Itoa(int(session.Spec.DurationSeconds)),
+	}
+	if session.Spec.RoleSessionName != "" {
+		command = append(command, "-n", session.Spec.RoleSessionName)
+	}
+
+	logger.Info("creating sidecar container", "command", command)
 	pod.Spec.InitContainers = append(pod.Spec.InitContainers, corev1.Container{
 		Name:          sidecarContainerName,
 		Image:         sidecarContainerImage,
 		RestartPolicy: &sidecarContainerRestartPolicy,
-		// TODO: set the update-credentials command
-		Command: []string{"sleep", "infinity"},
+		Command:       command,
 		VolumeMounts: []corev1.VolumeMount{
 			{
 				Name:      certSecretVolumeName,
