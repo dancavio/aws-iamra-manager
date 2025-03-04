@@ -80,7 +80,7 @@ func main() {
 
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
 
-	setupLog.Info(fmt.Sprintf("Starting AWS IAM RA Manager version %s", build.ReleaseVersion))
+	setupLog.Info(fmt.Sprintf("AWS IAM RA Manager version %s", build.ReleaseVersion))
 
 	// if the enable-http2 flag is false (the default), http/2 should be disabled
 	// due to its vulnerabilities. More specifically, disabling http/2 will
