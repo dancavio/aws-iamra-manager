@@ -23,6 +23,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"os"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
@@ -31,14 +32,14 @@ import (
 )
 
 const (
-	certSecretVolumeName = "aws-iamra-cert-secret"
-	// TODO: this should be configurable
-	sidecarContainerImage = "ghcr.io/dancavio/aws-iamra-manager/sidecar:0.2.0"
-	sidecarContainerName  = "aws-iamra-manager"
-	sidecarCertMountPath  = "/iamram/certs"
+	certSecretVolumeName        = "aws-iamra-cert-secret"
+	sidecarContainerImageEnvVar = "AWS_IAMRA_MANAGER_SIDECAR_IMAGE"
+	sidecarContainerName        = "aws-iamra-manager"
+	sidecarCertMountPath        = "/iamram/certs"
 )
 
 var (
+	sidecarContainerImage         string
 	sidecarContainerRestartPolicy = corev1.ContainerRestartPolicyAlways
 
 	podlog = logf.Log.WithName("pod-webhook")
@@ -46,6 +47,11 @@ var (
 
 // SetupPodWebhookWithManager registers the webhook for Pod in the manager.
 func SetupPodWebhookWithManager(mgr ctrl.Manager) error {
+	var ok bool
+	if sidecarContainerImage, ok = os.LookupEnv(sidecarContainerImageEnvVar); !ok {
+		return fmt.Errorf("%s environment variable must be set", sidecarContainerImageEnvVar)
+	}
+
 	return ctrl.NewWebhookManagedBy(mgr).For(&corev1.Pod{}).
 		WithDefaulter(&PodCustomDefaulter{
 			client: mgr.GetClient(),
@@ -119,11 +125,10 @@ func (d *PodCustomDefaulter) injectSidecar(ctx context.Context, pod *corev1.Pod,
 	}
 	var session v1.AwsIamRaSession
 	if err := d.client.Get(ctx, sessionNsName, &session); err != nil {
-		logger.Info("unable to fetch AwsIamRaSession")
+		podlog.Info("unable to fetch AwsIamRaSession")
 		return err
 	}
-	// TODO: should be podLog, not logger (few other instances here too)
-	logger.Info("found AwsIamRaSession object, injecting sidecar now")
+	podlog.Info("found AwsIamRaSession object, injecting sidecar now")
 
 	command := []string{
 		"update-credentials",
@@ -136,7 +141,7 @@ func (d *PodCustomDefaulter) injectSidecar(ctx context.Context, pod *corev1.Pod,
 		command = append(command, "-n", session.Spec.RoleSessionName)
 	}
 
-	logger.Info("creating sidecar container", "command", command)
+	podlog.Info("creating sidecar container", "command", command)
 	pod.Spec.InitContainers = append(pod.Spec.InitContainers, corev1.Container{
 		Name:          sidecarContainerName,
 		Image:         sidecarContainerImage,

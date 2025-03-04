@@ -9,7 +9,10 @@ ARG TARGETPLATFORM
 
 ADD install-aws-tools /tmp/
 RUN /tmp/install-aws-tools "$TARGETPLATFORM" && rm /tmp/install-aws-tools
-ADD update-credentials update-credentials
+ADD serve-credentials serve-credentials
+
+ARG release_version="DEV"
+RUN echo "$release_version" > version
 
 ENTRYPOINT ["sleep", "infinity"]
 

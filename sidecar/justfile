@@ -8,13 +8,14 @@ local_platform := "linux/arm64"
 @build-local:
     docker build --load --platform {{local_platform}} -t {{tag}} .
 
-release_version := "0.2.0"
+release_version := "0.3.0"
 
 build-multiplatform release="false":
     #!/usr/bin/env bash
     push_flag=""
     [[ "{{release}}" == "true" ]] && push_flag="--push"
     docker buildx build $push_flag --platform linux/amd64,linux/arm64 \
+        --build-arg release_version={{release_version}} \
         -t {{registry}}/{{name}}:{{release_version}} .
 
 @run entrypoint *ARGS:
