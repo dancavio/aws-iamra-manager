@@ -65,6 +65,9 @@ spec:
           - --health-probe-bind-address=:8081
         image: controller:latest
         name: manager
+        env:
+          - name: AWS_IAMRA_MANAGER_SIDECAR_IMAGE
+            value: ghcr.io/dancavio/aws-iamra-manager/sidecar:0.3.0
         securityContext:
           allowPrivilegeEscalation: false
           capabilities:

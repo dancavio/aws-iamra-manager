@@ -1,5 +1,6 @@
+RELEASE_VERSION ?= 0.3.1
 # Image URL to use all building/pushing image targets
-IMG ?= ghcr.io/dancavio/aws-iamra-manager/controller:0.2.4
+IMG ?= ghcr.io/dancavio/aws-iamra-manager/controller:$(RELEASE_VERSION)
 # ENVTEST_K8S_VERSION refers to the version of kubebuilder assets to be downloaded by envtest binary.
 ENVTEST_K8S_VERSION = 1.31.0
 
@@ -92,7 +93,7 @@ lint-fix: golangci-lint ## Run golangci-lint linter and perform fixes
 
 .PHONY: build
 build: manifests generate fmt vet ## Build manager binary.
-	go build -o bin/manager cmd/main.go
+	go build -ldflags "-X 'dancav.io/aws-iamra-manager/internal/build.ReleaseVersion=$(RELEASE_VERSION)'" -o bin/manager cmd/main.go
 
 .PHONY: run
 run: manifests generate fmt vet ## Run a controller from your host.
@@ -104,7 +105,7 @@ run: manifests generate fmt vet ## Run a controller from your host.
 # More info: https://docs.docker.com/develop/develop-images/build_enhancements/
 .PHONY: docker-build
 docker-build: ## Build docker image with the manager.
-	$(CONTAINER_TOOL) build --platform linux/amd64 -t ${IMG} .
+	$(CONTAINER_TOOL) build --platform linux/arm64 -t ${IMG} --build-arg RELEASE_VERSION=$(RELEASE_VERSION) .
 
 .PHONY: docker-push
 docker-push: ## Push docker image with the manager.
@@ -123,7 +124,7 @@ docker-buildx: ## Build and push docker image for the manager for cross-platform
 	sed -e '1 s/\(^FROM\)/FROM --platform=\$$\{BUILDPLATFORM\}/; t' -e ' 1,// s//FROM --platform=\$$\{BUILDPLATFORM\}/' Dockerfile > Dockerfile.cross
 	- $(CONTAINER_TOOL) buildx create --name aws-iamra-manager-builder
 	$(CONTAINER_TOOL) buildx use aws-iamra-manager-builder
-	- $(CONTAINER_TOOL) buildx build --push --platform=$(PLATFORMS) --tag ${IMG} -f Dockerfile.cross .
+	- $(CONTAINER_TOOL) buildx build --push --platform=$(PLATFORMS) --tag ${IMG} --build-arg RELEASE_VERSION=$(RELEASE_VERSION) -f Dockerfile.cross .
 	- $(CONTAINER_TOOL) buildx rm aws-iamra-manager-builder
 	rm Dockerfile.cross
 
