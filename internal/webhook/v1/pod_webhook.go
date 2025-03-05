@@ -131,7 +131,7 @@ func (d *PodCustomDefaulter) injectSidecar(ctx context.Context, pod *corev1.Pod,
 	podlog.Info("found AwsIamRaSession object, injecting sidecar now")
 
 	command := []string{
-		"update-credentials",
+		"serve-credentials",
 		"-t", string(session.Spec.TrustAnchorArn),
 		"-p", string(session.Spec.ProfileArn),
 		"-r", string(session.Spec.RoleArn),
