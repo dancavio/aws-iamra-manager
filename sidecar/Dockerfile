@@ -3,7 +3,7 @@ FROM alpine:3.20
 ARG WORKDIR="/iamram"
 WORKDIR $WORKDIR
 
-RUN apk add --no-cache wget bash jq gcompat aws-cli
+RUN apk add --no-cache wget curl bash jq gcompat aws-cli
 
 ARG TARGETPLATFORM
 
