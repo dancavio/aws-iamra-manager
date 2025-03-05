@@ -46,8 +46,9 @@ docker buildx create \
 Then:
 
 1. Update `release_version` in justfile to release a new version.
-2. Then build and push to GitHub: `just build-multiplatform true`.
-3. To start using the new sidecar container, need to update the version in 
+2. Enable multiplatform builder: `docker buildx use multiplatbuilder`
+3. Then build and push to GitHub: `just build-multiplatform true`.
+4To start using the new sidecar container, need to update the version in 
    `pod_webhook.go`, and release a new version of the controller.
    * TODO: The sidecar version should be configurable in the controller so it 
      doesn't require releasing a new build.
