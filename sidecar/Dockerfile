@@ -9,7 +9,7 @@ ARG TARGETPLATFORM
 
 ADD install-aws-tools /tmp/
 RUN /tmp/install-aws-tools "$TARGETPLATFORM" && rm /tmp/install-aws-tools
-ADD serve-credentials serve-credentials
+ADD scripts/* .
 
 ARG release_version="DEV"
 RUN echo "$release_version" > version

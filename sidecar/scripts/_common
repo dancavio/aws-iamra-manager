@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+
+CONFIG_FILEPATH="/iamram/config.env"
+
+trust_anchor_arn=""
+profile_arn=""
+role_arn=""
+duration_seconds=""
+role_session_name=""
+
+while getopts ":t:p:r:d:n:" opt; do
+    case ${opt} in
+        t )
+            trust_anchor_arn=$OPTARG ;;
+        p )
+            profile_arn=$OPTARG ;;
+        r )
+            role_arn=$OPTARG ;;
+        d )
+            duration_seconds=$OPTARG ;;
+        n )
+            role_session_name=$OPTARG ;;
+        \? )
+            fail "Invalid option: $OPTARG" ;;
+        : )
+            fail "Invalid option: $OPTARG requires an argument" ;;
+    esac
+done

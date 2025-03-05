@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+set -eu
+
+. _common
+
+write_param() {
+    local name=$1
+    local value="${!name}"
+    if [[ -n "$value" ]]; then
+        echo "$name=$value" >> "$CONFIG_FILEPATH"
+    fi
+}
+
+true > "$CONFIG_FILEPATH"
+
+write_param "trust_anchor_arn"
+write_param "profile_arn"
+write_param "role_arn"
+write_param "duration_seconds"
+write_param "role_session_name"
+
+echo "Wrote config file, SIGHUP'ing credential server now"
+
+kill -HUP 1 # serve-credentials runs as PID 1 in the sidecar
