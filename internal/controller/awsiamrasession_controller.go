@@ -19,6 +19,8 @@ package controller
 import (
 	"context"
 	"dancav.io/aws-iamra-manager/api/v1"
+	"dancav.io/aws-iamra-manager/internal/iamram"
+	"errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -37,11 +39,6 @@ type AwsIamRaSessionReconciler struct {
 	Recorder   record.EventRecorder
 	KubeConfig *rest.Config
 }
-
-const (
-	reasonInactive = "Inactive"
-	reasonUpdated  = "Updated"
-)
 
 // +kubebuilder:rbac:groups=cloud.dancav.io,resources=awsiamrasessions,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=cloud.dancav.io,resources=awsiamrasessions/status,verbs=get;update;patch
@@ -90,11 +87,20 @@ func (r *AwsIamRaSessionReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 
 	logger.Info("Found pods using this session", "pods", relatedPodNames)
 
-	// TODO: update config for all pods
+	anyFailures := false
+	for _, pod := range relatedPods {
+		logger.Info("Updating config for pod", "pod", pod.Name)
+		if err := iamram.ReconcilePod(ctx, k, r.KubeConfig, &session, pod); err != nil {
+			logger.Error(err, "failed to update config for pod", "pod", pod.Name)
+			anyFailures = true
+		}
+	}
 
-	// TODO: emit events and/or conditions
-
-	return ctrl.Result{}, nil
+	var finalError error
+	if anyFailures {
+		finalError = errors.New("failed to update one or more pods")
+	}
+	return ctrl.Result{}, finalError
 }
 
 // SetupWithManager sets up the controller with the Manager.
