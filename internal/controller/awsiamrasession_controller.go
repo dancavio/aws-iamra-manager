@@ -19,14 +19,12 @@ package controller
 import (
 	"context"
 	"dancav.io/aws-iamra-manager/api/v1"
-	"fmt"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/record"
-	"time"
-
-	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -67,81 +65,34 @@ func (r *AwsIamRaSessionReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	// TODO: List all pods with annotation "cloud.dancav.io/aws-iamra-session-name" matching this session's name
-
 	k, err := kubernetes.NewForConfig(r.KubeConfig)
 	if err != nil {
-		logger.Error(err, "unable to create clientset")
+		logger.Error(err, "unable to create client")
 		return ctrl.Result{}, err
 	}
 
-	listOps := metav1.ListOptions{
-		FieldSelector: fmt.Sprintf("metadata.annotations.%s=%s", v1.SessionNamePodAnnotationKey, session.Name),
-	}
-	podList, err := k.CoreV1().Pods(req.Namespace).List(ctx, listOps)
+	podList, err := k.CoreV1().Pods(req.Namespace).List(ctx, metav1.ListOptions{})
 	if err != nil {
 		logger.Error(err, "unable to query API for pods")
 		return ctrl.Result{}, err
 	}
 
-	logger.Info("Found pods using this session", "pods", podList.Items)
+	var relatedPods []corev1.Pod
+	for _, pod := range podList.Items {
+		if metav1.HasAnnotation(pod.ObjectMeta, v1.SessionNamePodAnnotationKey) {
+			if pod.Annotations[v1.SessionNamePodAnnotationKey] == session.Name {
+				relatedPods = append(relatedPods, pod)
+			}
+		}
+	}
 
-	// TODO: not much to reconcile anymore.. maybe keep track of the pods using the session (in its status),
-	// and here we just check if cleanup is necessary? update existing pods somehow if session params change?
+	logger.Info("Found pods using this session", "pods", relatedPods)
 
-	//k, err := kubernetes.NewForConfig(r.KubeConfig)
-	//if err != nil {
-	//	logger.Error(err, "unable to create clientset")
-	//	return ctrl.Result{}, err
-	//}
-	//
-	//listOps := metav1.ListOptions{
-	//	LabelSelector: fmt.Sprintf("%s=%s", v1.SessionNamePodLabelKey, session.Name),
-	//}
-	//podList, err := k.CoreV1().Pods(req.Namespace).List(ctx, listOps)
-	//if err != nil {
-	//	logger.Error(err, "unable to query API for pods")
-	//	return ctrl.Result{}, err
-	//}
-	//
-	//if len(podList.Items) == 0 {
-	//	r.Recorder.Event(&session, corev1.EventTypeWarning, reasonInactive,
-	//		"Found no pods matching selector")
-	//	return ctrl.Result{}, nil
-	//}
-	//
-	//var nextRequeue *time.Time
-	//credsRefreshed := false
-	//for _, pod := range podList.Items {
-	//	expirationForPod, refreshedPod, err := iamram.ReconcilePod(ctx, k, r.KubeConfig, &session, pod)
-	//	if err != nil {
-	//		return ctrl.Result{}, fmt.Errorf(
-	//			"couldn't reconcile credentials for pod %s: %w", pod.Name, err)
-	//	}
-	//	// Use the first pod's requeue time, since it's the earliest.
-	//	if nextRequeue == nil {
-	//		nextRequeueForPod := expirationForPod.Add(-1 * iamram.ExpirationBufferSeconds * time.Second)
-	//		nextRequeue = &nextRequeueForPod
-	//	}
-	//	if refreshedPod {
-	//		credsRefreshed = true
-	//	}
-	//}
-	//
-	//if err := r.Status().Update(ctx, &session); err != nil {
-	//	logger.Error(err, "unable to update AwsIamRaSession status")
-	//	return ctrl.Result{}, err
-	//}
-	//
-	//// TODO: emit more useful events, including success and all failure cases
-	//// TODO: how do other k8s controllers do error-handling/logging/eventing?
-	//
-	//if credsRefreshed {
-	//	r.Recorder.Event(&session, corev1.EventTypeNormal, reasonUpdated,
-	//		"Successfully issued new session credentials")
-	//}
+	// TODO: update config for all pods
 
-	return ctrl.Result{RequeueAfter: time.Hour}, nil
+	// TODO: emit events and/or conditions
+
+	return ctrl.Result{}, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.

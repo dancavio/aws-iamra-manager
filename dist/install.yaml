@@ -328,7 +328,7 @@ spec:
         env:
         - name: AWS_IAMRA_MANAGER_SIDECAR_IMAGE
           value: ghcr.io/dancavio/aws-iamra-manager/sidecar:0.4.0
-        image: ghcr.io/dancavio/aws-iamra-manager/controller:0.4.1
+        image: ghcr.io/dancavio/aws-iamra-manager/controller:0.4.2
         livenessProbe:
           httpGet:
             path: /healthz
