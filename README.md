@@ -32,6 +32,12 @@ Pod injection webhook:
 kubebuilder create webhook --group core --version v1 --kind Pod --defaulting
 ```
 
+Pod controller to handle updating role profiles:
+
+```shell
+kubebuilder create api --group core --version v1 --kind Pod --controller=true --resource=false
+```
+
 ### Updating sidecar container
 
 To build multi-platform images I first needed to create a customer builder:

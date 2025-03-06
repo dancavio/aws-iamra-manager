@@ -195,8 +195,12 @@ rules:
   resources:
   - pods
   verbs:
+  - create
+  - delete
   - get
   - list
+  - patch
+  - update
   - watch
 - apiGroups:
   - ""
@@ -204,6 +208,20 @@ rules:
   - pods/exec
   verbs:
   - create
+- apiGroups:
+  - ""
+  resources:
+  - pods/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - ""
+  resources:
+  - pods/status
+  verbs:
+  - get
+  - patch
+  - update
 - apiGroups:
   - cloud.dancav.io
   resources:
@@ -309,8 +327,8 @@ spec:
         - /manager
         env:
         - name: AWS_IAMRA_MANAGER_SIDECAR_IMAGE
-          value: ghcr.io/dancavio/aws-iamra-manager/sidecar:0.3.0
-        image: ghcr.io/dancavio/aws-iamra-manager/controller:0.3.1
+          value: ghcr.io/dancavio/aws-iamra-manager/sidecar:0.4.0
+        image: ghcr.io/dancavio/aws-iamra-manager/controller:0.4.0
         livenessProbe:
           httpGet:
             path: /healthz

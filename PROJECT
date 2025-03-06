@@ -21,7 +21,8 @@ resources:
     defaulting: true
     validation: true
     webhookVersion: v1
-- core: true
+- controller: true
+  core: true
   group: core
   kind: Pod
   path: k8s.io/api/core/v1

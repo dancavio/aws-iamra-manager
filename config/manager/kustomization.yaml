@@ -5,4 +5,4 @@ kind: Kustomization
 images:
 - name: controller
   newName: ghcr.io/dancavio/aws-iamra-manager/controller
-  newTag: 0.3.1
+  newTag: 0.4.0

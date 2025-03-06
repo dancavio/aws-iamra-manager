@@ -18,10 +18,11 @@ package main
 
 import (
 	"crypto/tls"
-	"dancav.io/aws-iamra-manager/internal/build"
 	"flag"
 	"fmt"
 	"os"
+
+	"dancav.io/aws-iamra-manager/internal/build"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
@@ -37,7 +38,7 @@ import (
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
-	"dancav.io/aws-iamra-manager/api/v1"
+	v1 "dancav.io/aws-iamra-manager/api/v1"
 	"dancav.io/aws-iamra-manager/internal/controller"
 	webhookv1 "dancav.io/aws-iamra-manager/internal/webhook/v1"
 	// +kubebuilder:scaffold:imports
@@ -167,6 +168,13 @@ func main() {
 			setupLog.Error(err, "unable to create webhook", "webhook", "Pod")
 			os.Exit(1)
 		}
+	}
+	if err = (&controller.PodReconciler{
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "Pod")
+		os.Exit(1)
 	}
 	// +kubebuilder:scaffold:builder
 
