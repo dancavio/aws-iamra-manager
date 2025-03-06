@@ -78,15 +78,17 @@ func (r *AwsIamRaSessionReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	}
 
 	var relatedPods []corev1.Pod
+	var relatedPodNames []string
 	for _, pod := range podList.Items {
 		if metav1.HasAnnotation(pod.ObjectMeta, v1.SessionNamePodAnnotationKey) {
 			if pod.Annotations[v1.SessionNamePodAnnotationKey] == session.Name {
 				relatedPods = append(relatedPods, pod)
+				relatedPodNames = append(relatedPodNames, pod.Name)
 			}
 		}
 	}
 
-	logger.Info("Found pods using this session", "pods", relatedPods)
+	logger.Info("Found pods using this session", "pods", relatedPodNames)
 
 	// TODO: update config for all pods
 
