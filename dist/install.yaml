@@ -195,12 +195,8 @@ rules:
   resources:
   - pods
   verbs:
-  - create
-  - delete
   - get
   - list
-  - patch
-  - update
   - watch
 - apiGroups:
   - ""
@@ -208,20 +204,6 @@ rules:
   - pods/exec
   verbs:
   - create
-- apiGroups:
-  - ""
-  resources:
-  - pods/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - ""
-  resources:
-  - pods/status
-  verbs:
-  - get
-  - patch
-  - update
 - apiGroups:
   - cloud.dancav.io
   resources:
