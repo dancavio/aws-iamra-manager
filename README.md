@@ -17,13 +17,13 @@ kubebuilder init --domain dancavallaro.com --repo dancavallaro.com/aws-iamra-man
 Initialize CRD:
 
 ```shell
-kubebuilder create api --group cloud --version v1 --kind AwsIamRaSession
+kubebuilder create api --group cloud --version v1 --kind AwsIamRaRoleProfile
 ```
 
 Scaffold defaulting and validating webhooks:
 
 ```shell
-kubebuilder create webhook --group cloud --version v1 --kind AwsIamRaSession --defaulting --programmatic-validation
+kubebuilder create webhook --group cloud --version v1 --kind AwsIamRaRoleProfile --defaulting --programmatic-validation
 ```
 
 Pod injection webhook:

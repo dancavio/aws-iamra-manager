@@ -20,6 +20,7 @@ import (
 	"context"
 	"dancav.io/aws-iamra-manager/api/v1"
 	"fmt"
+	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -41,8 +42,6 @@ const (
 var (
 	sidecarContainerImage         string
 	sidecarContainerRestartPolicy = corev1.ContainerRestartPolicyAlways
-
-	podlog = logf.Log.WithName("pod-webhook")
 )
 
 // SetupPodWebhookWithManager registers the webhook for Pod in the manager.
@@ -51,10 +50,12 @@ func SetupPodWebhookWithManager(mgr ctrl.Manager) error {
 	if sidecarContainerImage, ok = os.LookupEnv(sidecarContainerImageEnvVar); !ok {
 		return fmt.Errorf("%s environment variable must be set", sidecarContainerImageEnvVar)
 	}
+	logger := logf.Log.WithName("pod-webhook")
 
 	return ctrl.NewWebhookManagedBy(mgr).For(&corev1.Pod{}).
 		WithDefaulter(&PodCustomDefaulter{
 			client: mgr.GetClient(),
+			logger: logger,
 		}).
 		Complete()
 }
@@ -68,6 +69,7 @@ func SetupPodWebhookWithManager(mgr ctrl.Manager) error {
 // as it is used only for temporary operations and does not need to be deeply copied.
 type PodCustomDefaulter struct {
 	client client.Client
+	logger logr.Logger
 }
 
 var _ webhook.CustomDefaulter = &PodCustomDefaulter{}
@@ -79,18 +81,18 @@ func (d *PodCustomDefaulter) Default(ctx context.Context, obj runtime.Object) er
 		return fmt.Errorf("expected a Pod object but got %T", obj)
 	}
 
-	podlog.Info("Defaulting for new pod")
+	d.logger.Info("Defaulting for new pod")
 
-	if sessionName, ok := pod.Annotations[v1.SessionNamePodAnnotationKey]; ok {
-		podlog.Info("Injecting AWS IAM RA session manager into new pod",
-			"sessionName", sessionName)
-		return d.mutatePodSpec(ctx, pod, sessionName)
+	if profileName, ok := pod.Annotations[v1.RoleProfilePodAnnotationKey]; ok {
+		d.logger.Info("Injecting AWS IAM RA credential server into new pod",
+			"profileName", profileName)
+		return d.mutatePodSpec(ctx, pod, profileName)
 	}
 
 	return nil
 }
 
-func (d *PodCustomDefaulter) mutatePodSpec(ctx context.Context, pod *corev1.Pod, sessionName string) error {
+func (d *PodCustomDefaulter) mutatePodSpec(ctx context.Context, pod *corev1.Pod, profileName string) error {
 	var certSecretName string
 	var ok bool
 	if certSecretName, ok = pod.Annotations[v1.CertSecretPodAnnotationKey]; !ok {
@@ -115,33 +117,33 @@ func (d *PodCustomDefaulter) mutatePodSpec(ctx context.Context, pod *corev1.Pod,
 		})
 	}
 
-	return d.injectSidecar(ctx, pod, sessionName)
+	return d.injectSidecar(ctx, pod, profileName)
 }
 
-func (d *PodCustomDefaulter) injectSidecar(ctx context.Context, pod *corev1.Pod, sessionName string) error {
-	sessionNsName := types.NamespacedName{
+func (d *PodCustomDefaulter) injectSidecar(ctx context.Context, pod *corev1.Pod, profileName string) error {
+	profileNsName := types.NamespacedName{
 		Namespace: pod.Namespace,
-		Name:      sessionName,
+		Name:      profileName,
 	}
-	var session v1.AwsIamRaSession
-	if err := d.client.Get(ctx, sessionNsName, &session); err != nil {
-		podlog.Info("unable to fetch AwsIamRaSession")
+	var profile v1.AwsIamRaRoleProfile
+	if err := d.client.Get(ctx, profileNsName, &profile); err != nil {
+		d.logger.Info("unable to fetch AwsIamRaRoleProfile")
 		return err
 	}
-	podlog.Info("found AwsIamRaSession object, injecting sidecar now")
+	d.logger.Info("found AwsIamRaRoleProfile object, injecting sidecar now")
 
 	command := []string{
 		"serve-credentials",
-		"-t", string(session.Spec.TrustAnchorArn),
-		"-p", string(session.Spec.ProfileArn),
-		"-r", string(session.Spec.RoleArn),
-		"-d", strconv.Itoa(int(session.Spec.DurationSeconds)),
+		"-t", string(profile.Spec.TrustAnchorArn),
+		"-p", string(profile.Spec.ProfileArn),
+		"-r", string(profile.Spec.RoleArn),
+		"-d", strconv.Itoa(int(profile.Spec.DurationSeconds)),
 	}
-	if session.Spec.RoleSessionName != "" {
-		command = append(command, "-n", session.Spec.RoleSessionName)
+	if profile.Spec.RoleSessionName != "" {
+		command = append(command, "-n", profile.Spec.RoleSessionName)
 	}
 
-	podlog.Info("creating sidecar container", "command", command)
+	d.logger.Info("creating sidecar container", "command", command)
 	pod.Spec.InitContainers = append(pod.Spec.InitContainers, corev1.Container{
 		Name:          sidecarContainerName,
 		Image:         sidecarContainerImage,

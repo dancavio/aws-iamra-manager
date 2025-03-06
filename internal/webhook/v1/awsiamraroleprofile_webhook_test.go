@@ -23,20 +23,20 @@ import (
 	"dancav.io/aws-iamra-manager/api/v1"
 )
 
-var _ = Describe("AwsIamRaSession Webhook", func() {
+var _ = Describe("AwsIamRaRoleProfile Webhook", func() {
 	var (
-		obj       *v1.AwsIamRaSession
-		oldObj    *v1.AwsIamRaSession
-		validator AwsIamRaSessionCustomValidator
-		defaulter AwsIamRaSessionCustomDefaulter
+		obj       *v1.AwsIamRaRoleProfile
+		oldObj    *v1.AwsIamRaRoleProfile
+		validator AwsIamRaRoleProfileCustomValidator
+		defaulter AwsIamRaRoleProfileCustomDefaulter
 	)
 
 	BeforeEach(func() {
-		obj = &v1.AwsIamRaSession{}
-		oldObj = &v1.AwsIamRaSession{}
-		validator = AwsIamRaSessionCustomValidator{}
+		obj = &v1.AwsIamRaRoleProfile{}
+		oldObj = &v1.AwsIamRaRoleProfile{}
+		validator = AwsIamRaRoleProfileCustomValidator{}
 		Expect(validator).NotTo(BeNil(), "Expected validator to be initialized")
-		defaulter = AwsIamRaSessionCustomDefaulter{}
+		defaulter = AwsIamRaRoleProfileCustomDefaulter{}
 		Expect(defaulter).NotTo(BeNil(), "Expected defaulter to be initialized")
 		Expect(oldObj).NotTo(BeNil(), "Expected oldObj to be initialized")
 		Expect(obj).NotTo(BeNil(), "Expected obj to be initialized")
@@ -47,7 +47,7 @@ var _ = Describe("AwsIamRaSession Webhook", func() {
 		// TODO (user): Add any teardown logic common to all tests
 	})
 
-	Context("When creating AwsIamRaSession under Defaulting Webhook", func() {
+	Context("When creating AwsIamRaRoleProfile under Defaulting Webhook", func() {
 		// TODO (user): Add logic for defaulting webhooks
 		// Example:
 		// It("Should apply defaults when a required field is empty", func() {
@@ -60,7 +60,7 @@ var _ = Describe("AwsIamRaSession Webhook", func() {
 		// })
 	})
 
-	Context("When creating or updating AwsIamRaSession under Validating Webhook", func() {
+	Context("When creating or updating AwsIamRaRoleProfile under Validating Webhook", func() {
 		// TODO (user): Add logic for validating webhooks
 
 		It("Should admit creation if all required fields are present", func() {

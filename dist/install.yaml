@@ -12,20 +12,25 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.16.4
-  name: awsiamrasessions.cloud.dancav.io
+  name: awsiamraroleprofiles.cloud.dancav.io
 spec:
   group: cloud.dancav.io
   names:
-    kind: AwsIamRaSession
-    listKind: AwsIamRaSessionList
-    plural: awsiamrasessions
-    singular: awsiamrasession
+    kind: AwsIamRaRoleProfile
+    listKind: AwsIamRaRoleProfileList
+    plural: awsiamraroleprofiles
+    singular: awsiamraroleprofile
   scope: Namespaced
   versions:
-  - name: v1
+  - additionalPrinterColumns:
+    - jsonPath: .spec.roleArn
+      name: RoleArn
+      type: string
+    name: v1
     schema:
       openAPIV3Schema:
-        description: AwsIamRaSession is the Schema for the awsiamrasessions API.
+        description: AwsIamRaRoleProfile is the Schema for the awsIamRaRoleProfiles
+          API.
         properties:
           apiVersion:
             description: |-
@@ -45,16 +50,20 @@ spec:
           metadata:
             type: object
           spec:
-            description: AwsIamRaSessionSpec defines the desired state of AwsIamRaSession.
+            description: AwsIamRaRoleProfileSpec defines the desired state of AwsIamRaRoleProfile.
             properties:
               durationSeconds:
                 format: int32
+                maximum: 43200
+                minimum: 900
                 type: integer
               profileArn:
                 type: string
               roleArn:
                 type: string
               roleSessionName:
+                maxLength: 64
+                minLength: 2
                 type: string
               trustAnchorArn:
                 type: string
@@ -64,13 +73,12 @@ spec:
             - trustAnchorArn
             type: object
           status:
-            description: AwsIamRaSessionStatus defines the observed state of AwsIamRaSession.
+            description: AwsIamRaRoleProfileStatus defines the observed state of AwsIamRaRoleProfile.
             properties:
-              expirationTimes:
-                additionalProperties:
-                  format: date-time
+              activePods:
+                items:
                   type: string
-                type: object
+                type: array
             type: object
         type: object
     served: true
@@ -134,12 +142,12 @@ metadata:
   labels:
     app.kubernetes.io/managed-by: kustomize
     app.kubernetes.io/name: aws-iamra-manager
-  name: aws-iamram-awsiamrasession-editor-role
+  name: aws-iamram-awsiamraroleprofile-editor-role
 rules:
 - apiGroups:
   - cloud.dancav.io
   resources:
-  - awsiamrasessions
+  - awsiamraroleprofiles
   verbs:
   - create
   - delete
@@ -151,7 +159,7 @@ rules:
 - apiGroups:
   - cloud.dancav.io
   resources:
-  - awsiamrasessions/status
+  - awsiamraroleprofiles/status
   verbs:
   - get
 ---
@@ -161,12 +169,12 @@ metadata:
   labels:
     app.kubernetes.io/managed-by: kustomize
     app.kubernetes.io/name: aws-iamra-manager
-  name: aws-iamram-awsiamrasession-viewer-role
+  name: aws-iamram-awsiamraroleprofile-viewer-role
 rules:
 - apiGroups:
   - cloud.dancav.io
   resources:
-  - awsiamrasessions
+  - awsiamraroleprofiles
   verbs:
   - get
   - list
@@ -174,7 +182,7 @@ rules:
 - apiGroups:
   - cloud.dancav.io
   resources:
-  - awsiamrasessions/status
+  - awsiamraroleprofiles/status
   verbs:
   - get
 ---
@@ -207,7 +215,7 @@ rules:
 - apiGroups:
   - cloud.dancav.io
   resources:
-  - awsiamrasessions
+  - awsiamraroleprofiles
   verbs:
   - create
   - delete
@@ -219,13 +227,13 @@ rules:
 - apiGroups:
   - cloud.dancav.io
   resources:
-  - awsiamrasessions/finalizers
+  - awsiamraroleprofiles/finalizers
   verbs:
   - update
 - apiGroups:
   - cloud.dancav.io
   resources:
-  - awsiamrasessions/status
+  - awsiamraroleprofiles/status
   verbs:
   - get
   - patch
@@ -291,6 +299,7 @@ metadata:
   namespace: aws-iamram-system
 spec:
   replicas: 1
+  revisionHistoryLimit: 1
   selector:
     matchLabels:
       control-plane: controller-manager
@@ -309,8 +318,8 @@ spec:
         - /manager
         env:
         - name: AWS_IAMRA_MANAGER_SIDECAR_IMAGE
-          value: ghcr.io/dancavio/aws-iamra-manager/sidecar:0.3.0
-        image: ghcr.io/dancavio/aws-iamra-manager/controller:0.3.1
+          value: ghcr.io/dancavio/aws-iamra-manager/sidecar:0.99.0
+        image: ghcr.io/dancavio/aws-iamra-manager/controller:0.99.3
         livenessProbe:
           httpGet:
             path: /healthz
@@ -424,9 +433,9 @@ webhooks:
     service:
       name: aws-iamram-webhook-service
       namespace: aws-iamram-system
-      path: /mutate-cloud-dancav-io-v1-awsiamrasession
+      path: /mutate-cloud-dancav-io-v1-awsiamraroleprofile
   failurePolicy: Fail
-  name: mawsiamrasession-v1.kb.io
+  name: mawsiamraroleprofile-v1.kb.io
   rules:
   - apiGroups:
     - cloud.dancav.io
@@ -436,7 +445,7 @@ webhooks:
     - CREATE
     - UPDATE
     resources:
-    - awsiamrasessions
+    - awsiamraroleprofiles
   sideEffects: NoneOnDryRun
 ---
 apiVersion: admissionregistration.k8s.io/v1
@@ -452,9 +461,9 @@ webhooks:
     service:
       name: aws-iamram-webhook-service
       namespace: aws-iamram-system
-      path: /validate-cloud-dancav-io-v1-awsiamrasession
+      path: /validate-cloud-dancav-io-v1-awsiamraroleprofile
   failurePolicy: Fail
-  name: vawsiamrasession-v1.kb.io
+  name: vawsiamraroleprofile-v1.kb.io
   rules:
   - apiGroups:
     - cloud.dancav.io
@@ -464,5 +473,5 @@ webhooks:
     - CREATE
     - UPDATE
     resources:
-    - awsiamrasessions
+    - awsiamraroleprofiles
   sideEffects: None
