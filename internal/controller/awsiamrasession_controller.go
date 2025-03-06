@@ -19,6 +19,9 @@ package controller
 import (
 	"context"
 	"dancav.io/aws-iamra-manager/api/v1"
+	"fmt"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/record"
 	"time"
@@ -56,12 +59,32 @@ const (
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.19.1/pkg/reconcile
 func (r *AwsIamRaSessionReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
+	logger.Info("Received reconcile request for AwsIamRaSession")
 
 	var session v1.AwsIamRaSession
 	if err := r.Get(ctx, req.NamespacedName, &session); err != nil {
 		logger.Info("unable to fetch AwsIamRaSession")
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
+
+	// TODO: List all pods with annotation "cloud.dancav.io/aws-iamra-session-name" matching this session's name
+
+	k, err := kubernetes.NewForConfig(r.KubeConfig)
+	if err != nil {
+		logger.Error(err, "unable to create clientset")
+		return ctrl.Result{}, err
+	}
+
+	listOps := metav1.ListOptions{
+		FieldSelector: fmt.Sprintf("metadata.annotations.%s=%s", v1.SessionNamePodAnnotationKey, session.Name),
+	}
+	podList, err := k.CoreV1().Pods(req.Namespace).List(ctx, listOps)
+	if err != nil {
+		logger.Error(err, "unable to query API for pods")
+		return ctrl.Result{}, err
+	}
+
+	logger.Info("Found pods using this session", "pods", podList.Items)
 
 	// TODO: not much to reconcile anymore.. maybe keep track of the pods using the session (in its status),
 	// and here we just check if cleanup is necessary? update existing pods somehow if session params change?
