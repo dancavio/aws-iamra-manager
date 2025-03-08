@@ -77,11 +77,10 @@ func (r *AwsIamRaSessionReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	var relatedPods []corev1.Pod
 	var relatedPodNames []string
 	for _, pod := range podList.Items {
-		if metav1.HasAnnotation(pod.ObjectMeta, v1.SessionNamePodAnnotationKey) {
-			if pod.Annotations[v1.SessionNamePodAnnotationKey] == session.Name {
-				relatedPods = append(relatedPods, pod)
-				relatedPodNames = append(relatedPodNames, pod.Name)
-			}
+		// TODO: might need to requeue if any pods are pending?
+		if podNeedsUpdate(pod, session) {
+			relatedPods = append(relatedPods, pod)
+			relatedPodNames = append(relatedPodNames, pod.Name)
 		}
 	}
 
@@ -91,7 +90,6 @@ func (r *AwsIamRaSessionReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	for _, pod := range relatedPods {
 		logger.Info("Updating config for pod", "pod", pod.Name)
 		if err := iamram.ReconcilePod(ctx, k, r.KubeConfig, &session, pod); err != nil {
-			logger.Error(err, "failed to update config for pod", "pod", pod.Name)
 			anyFailures = true
 		}
 	}
@@ -101,6 +99,12 @@ func (r *AwsIamRaSessionReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		finalError = errors.New("failed to update one or more pods")
 	}
 	return ctrl.Result{}, finalError
+}
+
+func podNeedsUpdate(pod corev1.Pod, session v1.AwsIamRaSession) bool {
+	return metav1.HasAnnotation(pod.ObjectMeta, v1.SessionNamePodAnnotationKey) &&
+		pod.Annotations[v1.SessionNamePodAnnotationKey] == session.Name &&
+		pod.Status.Phase != corev1.PodFailed && pod.Status.Phase != corev1.PodSucceeded
 }
 
 // SetupWithManager sets up the controller with the Manager.
