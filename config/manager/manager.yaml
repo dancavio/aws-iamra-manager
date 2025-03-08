@@ -17,6 +17,7 @@ metadata:
     app.kubernetes.io/name: aws-iamra-manager
     app.kubernetes.io/managed-by: kustomize
 spec:
+  revisionHistoryLimit: 1
   selector:
     matchLabels:
       control-plane: controller-manager
