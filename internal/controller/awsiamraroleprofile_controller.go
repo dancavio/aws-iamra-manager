@@ -31,6 +31,8 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+	"strings"
+	"time"
 )
 
 // AwsIamRaRoleProfileReconciler reconciles a AwsIamRaRoleProfile object
@@ -79,6 +81,7 @@ func (r *AwsIamRaRoleProfileReconciler) Reconcile(ctx context.Context, req ctrl.
 	var updatablePodNames []string
 	for _, pod := range podList.Items {
 		// TODO: might need to requeue if any pods are pending?
+		// TODO: log if pod is pending
 		if podNeedsUpdate(pod, profile) {
 			updatablePods = append(updatablePods, pod)
 			updatablePodNames = append(updatablePodNames, types.NamespacedName{
@@ -96,18 +99,30 @@ func (r *AwsIamRaRoleProfileReconciler) Reconcile(ctx context.Context, req ctrl.
 	}
 
 	anyFailures := false
+	anyRetries := false
 	for _, pod := range updatablePods {
-		logger.Info("Updating config for pod", "pod", pod.Name)
+		logger.Info("Updating config for pod", "pod", pod.Name, "podStatus", pod.Status.Phase)
 		if err := iamram.ReconcilePod(ctx, k, r.KubeConfig, &profile, pod); err != nil {
-			anyFailures = true
+			if strings.Contains(err.Error(), "container not found") {
+				// Unless something is wrong, this should only happen when the pod is
+				// just starting up and the sidecar hasn't been injected yet. So we'll
+				// requeue this to be retried.
+				anyRetries = true
+			} else {
+				anyFailures = true
+			}
 		}
 	}
 
 	var finalError error
+	var result ctrl.Result
 	if anyFailures {
 		finalError = errors.New("failed to update one or more pods")
 	}
-	return ctrl.Result{}, finalError
+	if anyRetries {
+		result = ctrl.Result{RequeueAfter: 15 * time.Second}
+	}
+	return result, finalError
 }
 
 func podNeedsUpdate(pod corev1.Pod, profile v1.AwsIamRaRoleProfile) bool {
