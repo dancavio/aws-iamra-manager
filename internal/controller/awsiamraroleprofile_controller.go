@@ -79,6 +79,7 @@ func (r *AwsIamRaRoleProfileReconciler) Reconcile(ctx context.Context, req ctrl.
 	var updatablePodNames []string
 	for _, pod := range podList.Items {
 		// TODO: might need to requeue if any pods are pending?
+		// TODO: log if pod is pending
 		if podNeedsUpdate(pod, profile) {
 			updatablePods = append(updatablePods, pod)
 			updatablePodNames = append(updatablePodNames, types.NamespacedName{
@@ -97,7 +98,7 @@ func (r *AwsIamRaRoleProfileReconciler) Reconcile(ctx context.Context, req ctrl.
 
 	anyFailures := false
 	for _, pod := range updatablePods {
-		logger.Info("Updating config for pod", "pod", pod.Name)
+		logger.Info("Updating config for pod", "pod", pod.Name, "podStatus", pod.Status.Phase)
 		if err := iamram.ReconcilePod(ctx, k, r.KubeConfig, &profile, pod); err != nil {
 			anyFailures = true
 		}
