@@ -30,16 +30,21 @@ type ARN string
 
 // AwsIamRaRoleProfileSpec defines the desired state of AwsIamRaRoleProfile.
 type AwsIamRaRoleProfileSpec struct {
-	// TODO: add more annotated comments
-
 	// +kubebuilder:validation:Required
 	TrustAnchorArn ARN `json:"trustAnchorArn,omitempty"`
+
 	// +kubebuilder:validation:Required
 	ProfileArn ARN `json:"profileArn,omitempty"`
+
 	// +kubebuilder:validation:Required
 	RoleArn ARN `json:"roleArn,omitempty"`
 
-	DurationSeconds int32  `json:"durationSeconds,omitempty"`
+	// +kubebuilder:validation:Minimum=900
+	// +kubebuilder:validation:Maximum=43200
+	DurationSeconds int32 `json:"durationSeconds,omitempty"`
+
+	// +kubebuilder:validation:MinLength=2
+	// +kubebuilder:validation:MaxLength=64
 	RoleSessionName string `json:"roleSessionName,omitempty"`
 }
 
@@ -51,18 +56,14 @@ func (arn ARN) Parse() (aws.ARN, error) {
 	return aws.Parse(string(arn))
 }
 
-// TODO: use status conditions and add printable columns (e.g. expiration)
-// Some docs: https://github.com/kubernetes/community/blob/master/contributors/devel/sig-architecture/api-conventions.md#typical-status-properties
-// Example: https://github.com/fluxcd/kustomize-controller/blob/8ba6b2028f121c7986aeeee84dd2db0cd5d1a685/api/v1/kustomization_types.go#L294-L295
-
 // AwsIamRaRoleProfileStatus defines the observed state of AwsIamRaRoleProfile.
 type AwsIamRaRoleProfileStatus struct {
-	// TODO: don't need this anymore; maybe list of pods using session?
-	ExpirationTimes map[string]metav1.Time `json:"expirationTimes,omitempty"`
+	ActivePods []string `json:"activePods,omitempty"`
 }
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
+// +kubebuilder:printcolumn:name="RoleArn",type=string,JSONPath=`.spec.roleArn`
 
 // AwsIamRaRoleProfile is the Schema for the awsIamRaRoleProfiles API.
 type AwsIamRaRoleProfile struct {

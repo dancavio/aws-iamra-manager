@@ -24,6 +24,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/record"
@@ -80,11 +81,19 @@ func (r *AwsIamRaRoleProfileReconciler) Reconcile(ctx context.Context, req ctrl.
 		// TODO: might need to requeue if any pods are pending?
 		if podNeedsUpdate(pod, profile) {
 			updatablePods = append(updatablePods, pod)
-			updatablePodNames = append(updatablePodNames, pod.Name)
+			updatablePodNames = append(updatablePodNames, types.NamespacedName{
+				Namespace: pod.Namespace,
+				Name:      pod.Name,
+			}.String())
 		}
 	}
 
 	logger.Info("Found pods using this profile", "pods", updatablePodNames)
+	profile.Status.ActivePods = updatablePodNames
+	if err := r.Status().Update(ctx, &profile); err != nil {
+		logger.Error(err, "unable to update AwsIamRaRoleProfile status")
+		return ctrl.Result{}, err
+	}
 
 	anyFailures := false
 	for _, pod := range updatablePods {
