@@ -122,7 +122,7 @@ var _ = BeforeSuite(func() {
 	})
 	Expect(err).NotTo(HaveOccurred())
 
-	err = SetupAwsIamRaSessionWebhookWithManager(mgr)
+	err = SetupAwsIamRaRoleProfileWebhookWithManager(mgr)
 	Expect(err).NotTo(HaveOccurred())
 
 	err = SetupPodWebhookWithManager(mgr)

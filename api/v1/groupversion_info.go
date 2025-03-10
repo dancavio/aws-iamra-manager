@@ -37,6 +37,6 @@ var (
 	// AddToScheme adds the types in this group-version to the given scheme.
 	AddToScheme = SchemeBuilder.AddToScheme
 
-	// AwsIamRaSessionGroupKind is the GroupKind representing the AwsIamRaSession CRD.
-	AwsIamRaSessionGroupKind = schema.GroupKind{Group: Group, Kind: "AwsIamRaSession"}
+	// AwsIamRaRoleProfileGroupKind is the GroupKind representing the AwsIamRaRoleProfile CRD.
+	AwsIamRaRoleProfileGroupKind = schema.GroupKind{Group: Group, Kind: "AwsIamRaRoleProfile"}
 )

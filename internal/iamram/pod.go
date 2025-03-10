@@ -17,20 +17,20 @@ import (
 
 func ReconcilePod(
 	ctx context.Context, k *kubernetes.Clientset, kcfg *rest.Config,
-	session *v1.AwsIamRaSession, pod corev1.Pod,
+	profile *v1.AwsIamRaRoleProfile, pod corev1.Pod,
 ) error {
 	logger := log.FromContext(ctx)
 
 	command := []string{
 		"update-config",
-		"-t", string(session.Spec.TrustAnchorArn),
-		"-p", string(session.Spec.ProfileArn),
-		"-r", string(session.Spec.RoleArn),
-		"-d", strconv.Itoa(int(session.Spec.DurationSeconds)),
+		"-t", string(profile.Spec.TrustAnchorArn),
+		"-p", string(profile.Spec.ProfileArn),
+		"-r", string(profile.Spec.RoleArn),
+		"-d", strconv.Itoa(int(profile.Spec.DurationSeconds)),
 	}
 	roleSessionName := fmt.Sprintf("%s@%s", pod.Namespace, pod.Name)
-	if session.Spec.RoleSessionName != "" {
-		roleSessionName = session.Spec.RoleSessionName
+	if profile.Spec.RoleSessionName != "" {
+		roleSessionName = profile.Spec.RoleSessionName
 	}
 	command = append(command, "-n", roleSessionName)
 

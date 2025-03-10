@@ -14,7 +14,7 @@ resources:
   controller: true
   domain: dancav.io
   group: cloud
-  kind: AwsIamRaSession
+  kind: AwsIamRaRoleProfile
   path: dancav.io/aws-iamra-manager/api/v1
   version: v1
   webhooks:

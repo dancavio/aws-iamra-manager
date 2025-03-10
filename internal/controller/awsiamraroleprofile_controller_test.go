@@ -31,7 +31,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-var _ = Describe("AwsIamRaSession Controller", func() {
+var _ = Describe("AwsIamRaRoleProfile Controller", func() {
 	Context("When reconciling a resource", func() {
 		const resourceName = "test-resource"
 
@@ -41,11 +41,11 @@ var _ = Describe("AwsIamRaSession Controller", func() {
 			Name:      resourceName,
 			Namespace: "default", // TODO(user):Modify as needed
 		}
-		awsiamrasession := &v1.AwsIamRaSession{}
+		awsiamraroleprofile := &v1.AwsIamRaRoleProfile{}
 
 		BeforeEach(func() {
-			By("creating the custom resource for the Kind AwsIamRaSession")
-			err := k8sClient.Get(ctx, typeNamespacedName, awsiamrasession)
+			By("creating the custom resource for the Kind AwsIamRaRoleProfile")
+			err := k8sClient.Get(ctx, typeNamespacedName, awsiamraroleprofile)
 			if err != nil && errors.IsNotFound(err) {
 				certSecret := &corev1.Secret{
 					ObjectMeta: metav1.ObjectMeta{
@@ -54,12 +54,12 @@ var _ = Describe("AwsIamRaSession Controller", func() {
 					},
 				}
 				Expect(k8sClient.Create(ctx, certSecret)).To(Succeed())
-				resource := &v1.AwsIamRaSession{
+				resource := &v1.AwsIamRaRoleProfile{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      resourceName,
 						Namespace: "default",
 					},
-					Spec: v1.AwsIamRaSessionSpec{
+					Spec: v1.AwsIamRaRoleProfileSpec{
 						TrustAnchorArn: "test-trust-anchor",
 						ProfileArn:     "test-profile",
 						RoleArn:        "test-role",
@@ -71,17 +71,17 @@ var _ = Describe("AwsIamRaSession Controller", func() {
 
 		AfterEach(func() {
 			// TODO(user): Cleanup logic after each test, like removing the resource instance.
-			resource := &v1.AwsIamRaSession{}
+			resource := &v1.AwsIamRaRoleProfile{}
 			err := k8sClient.Get(ctx, typeNamespacedName, resource)
 			Expect(err).NotTo(HaveOccurred())
 
-			By("Cleanup the specific resource instance AwsIamRaSession")
+			By("Cleanup the specific resource instance AwsIamRaRoleProfile")
 			Expect(k8sClient.Delete(ctx, resource)).To(Succeed())
 		})
 
 		It("should successfully reconcile the resource", func() {
 			By("Reconciling the created resource")
-			controllerReconciler := &AwsIamRaSessionReconciler{
+			controllerReconciler := &AwsIamRaRoleProfileReconciler{
 				Client:     k8sClient,
 				Scheme:     k8sClient.Scheme(),
 				Recorder:   record.NewFakeRecorder(10),

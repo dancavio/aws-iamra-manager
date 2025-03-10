@@ -22,14 +22,14 @@ import (
 )
 
 const (
-	SessionNamePodAnnotationKey = "cloud.dancav.io/aws-iamra-session-name"
+	RoleProfilePodAnnotationKey = "cloud.dancav.io/aws-iamra-role-profile"
 	CertSecretPodAnnotationKey  = "cloud.dancav.io/aws-iamra-cert-secret"
 )
 
 type ARN string
 
-// AwsIamRaSessionSpec defines the desired state of AwsIamRaSession.
-type AwsIamRaSessionSpec struct {
+// AwsIamRaRoleProfileSpec defines the desired state of AwsIamRaRoleProfile.
+type AwsIamRaRoleProfileSpec struct {
 	// TODO: add more annotated comments
 
 	// +kubebuilder:validation:Required
@@ -55,8 +55,8 @@ func (arn ARN) Parse() (aws.ARN, error) {
 // Some docs: https://github.com/kubernetes/community/blob/master/contributors/devel/sig-architecture/api-conventions.md#typical-status-properties
 // Example: https://github.com/fluxcd/kustomize-controller/blob/8ba6b2028f121c7986aeeee84dd2db0cd5d1a685/api/v1/kustomization_types.go#L294-L295
 
-// AwsIamRaSessionStatus defines the observed state of AwsIamRaSession.
-type AwsIamRaSessionStatus struct {
+// AwsIamRaRoleProfileStatus defines the observed state of AwsIamRaRoleProfile.
+type AwsIamRaRoleProfileStatus struct {
 	// TODO: don't need this anymore; maybe list of pods using session?
 	ExpirationTimes map[string]metav1.Time `json:"expirationTimes,omitempty"`
 }
@@ -64,24 +64,24 @@ type AwsIamRaSessionStatus struct {
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 
-// AwsIamRaSession is the Schema for the awsiamrasessions API.
-type AwsIamRaSession struct {
+// AwsIamRaRoleProfile is the Schema for the awsIamRaRoleProfiles API.
+type AwsIamRaRoleProfile struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   AwsIamRaSessionSpec   `json:"spec,omitempty"`
-	Status AwsIamRaSessionStatus `json:"status,omitempty"`
+	Spec   AwsIamRaRoleProfileSpec   `json:"spec,omitempty"`
+	Status AwsIamRaRoleProfileStatus `json:"status,omitempty"`
 }
 
 // +kubebuilder:object:root=true
 
-// AwsIamRaSessionList contains a list of AwsIamRaSession.
-type AwsIamRaSessionList struct {
+// AwsIamRaRoleProfileList contains a list of AwsIamRaRoleProfile.
+type AwsIamRaRoleProfileList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []AwsIamRaSession `json:"items"`
+	Items           []AwsIamRaRoleProfile `json:"items"`
 }
 
 func init() {
-	SchemeBuilder.Register(&AwsIamRaSession{}, &AwsIamRaSessionList{})
+	SchemeBuilder.Register(&AwsIamRaRoleProfile{}, &AwsIamRaRoleProfileList{})
 }

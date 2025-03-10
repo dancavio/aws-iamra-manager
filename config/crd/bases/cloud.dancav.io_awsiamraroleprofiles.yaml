@@ -4,20 +4,21 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.16.4
-  name: awsiamrasessions.cloud.dancav.io
+  name: awsiamraroleprofiles.cloud.dancav.io
 spec:
   group: cloud.dancav.io
   names:
-    kind: AwsIamRaSession
-    listKind: AwsIamRaSessionList
-    plural: awsiamrasessions
-    singular: awsiamrasession
+    kind: AwsIamRaRoleProfile
+    listKind: AwsIamRaRoleProfileList
+    plural: awsiamraroleprofiles
+    singular: awsiamraroleprofile
   scope: Namespaced
   versions:
   - name: v1
     schema:
       openAPIV3Schema:
-        description: AwsIamRaSession is the Schema for the awsiamrasessions API.
+        description: AwsIamRaRoleProfile is the Schema for the awsIamRaRoleProfiles
+          API.
         properties:
           apiVersion:
             description: |-
@@ -37,7 +38,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: AwsIamRaSessionSpec defines the desired state of AwsIamRaSession.
+            description: AwsIamRaRoleProfileSpec defines the desired state of AwsIamRaRoleProfile.
             properties:
               durationSeconds:
                 format: int32
@@ -56,7 +57,7 @@ spec:
             - trustAnchorArn
             type: object
           status:
-            description: AwsIamRaSessionStatus defines the observed state of AwsIamRaSession.
+            description: AwsIamRaRoleProfileStatus defines the observed state of AwsIamRaRoleProfile.
             properties:
               expirationTimes:
                 additionalProperties:

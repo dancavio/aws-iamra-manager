@@ -147,19 +147,19 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err = (&controller.AwsIamRaSessionReconciler{
+	if err = (&controller.AwsIamRaRoleProfileReconciler{
 		Client:     mgr.GetClient(),
 		Scheme:     mgr.GetScheme(),
 		Recorder:   mgr.GetEventRecorderFor("iamram-controller"),
 		KubeConfig: mgr.GetConfig(),
 	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "AwsIamRaSession")
+		setupLog.Error(err, "unable to create controller", "controller", "AwsIamRaRoleProfile")
 		os.Exit(1)
 	}
 	// nolint:goconst
 	if os.Getenv("ENABLE_WEBHOOKS") != "false" {
-		if err = webhookv1.SetupAwsIamRaSessionWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create webhook", "webhook", "AwsIamRaSession")
+		if err = webhookv1.SetupAwsIamRaRoleProfileWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "AwsIamRaRoleProfile")
 			os.Exit(1)
 		}
 

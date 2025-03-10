@@ -28,7 +28,7 @@ rules:
 - apiGroups:
   - cloud.dancav.io
   resources:
-  - awsiamrasessions
+  - awsiamraroleprofiles
   verbs:
   - create
   - delete
@@ -40,13 +40,13 @@ rules:
 - apiGroups:
   - cloud.dancav.io
   resources:
-  - awsiamrasessions/finalizers
+  - awsiamraroleprofiles/finalizers
   verbs:
   - update
 - apiGroups:
   - cloud.dancav.io
   resources:
-  - awsiamrasessions/status
+  - awsiamraroleprofiles/status
   verbs:
   - get
   - patch

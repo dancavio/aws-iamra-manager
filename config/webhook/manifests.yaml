@@ -10,9 +10,9 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /mutate-cloud-dancav-io-v1-awsiamrasession
+      path: /mutate-cloud-dancav-io-v1-awsiamraroleprofile
   failurePolicy: Fail
-  name: mawsiamrasession-v1.kb.io
+  name: mawsiamraroleprofile-v1.kb.io
   rules:
   - apiGroups:
     - cloud.dancav.io
@@ -22,7 +22,7 @@ webhooks:
     - CREATE
     - UPDATE
     resources:
-    - awsiamrasessions
+    - awsiamraroleprofiles
   sideEffects: NoneOnDryRun
 - admissionReviewVersions:
   - v1
@@ -55,9 +55,9 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /validate-cloud-dancav-io-v1-awsiamrasession
+      path: /validate-cloud-dancav-io-v1-awsiamraroleprofile
   failurePolicy: Fail
-  name: vawsiamrasession-v1.kb.io
+  name: vawsiamraroleprofile-v1.kb.io
   rules:
   - apiGroups:
     - cloud.dancav.io
@@ -67,5 +67,5 @@ webhooks:
     - CREATE
     - UPDATE
     resources:
-    - awsiamrasessions
+    - awsiamraroleprofiles
   sideEffects: None

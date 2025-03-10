@@ -32,17 +32,17 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-// AwsIamRaSessionReconciler reconciles a AwsIamRaSession object
-type AwsIamRaSessionReconciler struct {
+// AwsIamRaRoleProfileReconciler reconciles a AwsIamRaRoleProfile object
+type AwsIamRaRoleProfileReconciler struct {
 	client.Client
 	Scheme     *runtime.Scheme
 	Recorder   record.EventRecorder
 	KubeConfig *rest.Config
 }
 
-// +kubebuilder:rbac:groups=cloud.dancav.io,resources=awsiamrasessions,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=cloud.dancav.io,resources=awsiamrasessions/status,verbs=get;update;patch
-// +kubebuilder:rbac:groups=cloud.dancav.io,resources=awsiamrasessions/finalizers,verbs=update
+// +kubebuilder:rbac:groups=cloud.dancav.io,resources=awsiamraroleprofiles,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=cloud.dancav.io,resources=awsiamraroleprofiles/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=cloud.dancav.io,resources=awsiamraroleprofiles/finalizers,verbs=update
 // +kubebuilder:rbac:groups=core,resources=events,verbs=create;patch
 // +kubebuilder:rbac:groups=core,resources=pods,verbs=list;watch;get
 // +kubebuilder:rbac:groups=core,resources=pods/exec,verbs=create
@@ -52,13 +52,13 @@ type AwsIamRaSessionReconciler struct {
 //
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.19.1/pkg/reconcile
-func (r *AwsIamRaSessionReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+func (r *AwsIamRaRoleProfileReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
-	logger.Info("Received reconcile request for AwsIamRaSession")
+	logger.Info("Received reconcile request for AwsIamRaRoleProfile")
 
-	var session v1.AwsIamRaSession
-	if err := r.Get(ctx, req.NamespacedName, &session); err != nil {
-		logger.Info("unable to fetch AwsIamRaSession")
+	var profile v1.AwsIamRaRoleProfile
+	if err := r.Get(ctx, req.NamespacedName, &profile); err != nil {
+		logger.Info("unable to fetch AwsIamRaRoleProfile")
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
@@ -78,18 +78,18 @@ func (r *AwsIamRaSessionReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	var relatedPodNames []string
 	for _, pod := range podList.Items {
 		// TODO: might need to requeue if any pods are pending?
-		if podNeedsUpdate(pod, session) {
+		if podNeedsUpdate(pod, profile) {
 			relatedPods = append(relatedPods, pod)
 			relatedPodNames = append(relatedPodNames, pod.Name)
 		}
 	}
 
-	logger.Info("Found pods using this session", "pods", relatedPodNames)
+	logger.Info("Found pods using this profile", "pods", relatedPodNames)
 
 	anyFailures := false
 	for _, pod := range relatedPods {
 		logger.Info("Updating config for pod", "pod", pod.Name)
-		if err := iamram.ReconcilePod(ctx, k, r.KubeConfig, &session, pod); err != nil {
+		if err := iamram.ReconcilePod(ctx, k, r.KubeConfig, &profile, pod); err != nil {
 			anyFailures = true
 		}
 	}
@@ -101,16 +101,16 @@ func (r *AwsIamRaSessionReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	return ctrl.Result{}, finalError
 }
 
-func podNeedsUpdate(pod corev1.Pod, session v1.AwsIamRaSession) bool {
-	return metav1.HasAnnotation(pod.ObjectMeta, v1.SessionNamePodAnnotationKey) &&
-		pod.Annotations[v1.SessionNamePodAnnotationKey] == session.Name &&
+func podNeedsUpdate(pod corev1.Pod, profile v1.AwsIamRaRoleProfile) bool {
+	return metav1.HasAnnotation(pod.ObjectMeta, v1.RoleProfilePodAnnotationKey) &&
+		pod.Annotations[v1.RoleProfilePodAnnotationKey] == profile.Name &&
 		pod.Status.Phase != corev1.PodFailed && pod.Status.Phase != corev1.PodSucceeded
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *AwsIamRaSessionReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *AwsIamRaRoleProfileReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&v1.AwsIamRaSession{}).
-		Named("awsiamrasession").
+		For(&v1.AwsIamRaRoleProfile{}).
+		Named("awsiamraroleprofile").
 		Complete(r)
 }
