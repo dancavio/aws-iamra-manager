@@ -8,7 +8,7 @@ local_platform := "linux/arm64"
 @build-local:
     docker build --load --platform {{local_platform}} -t {{tag}} .
 
-release_version := "0.99.0"
+release_version := "1.0.0"
 
 build-multiplatform release="false":
     #!/usr/bin/env bash
