@@ -60,6 +60,8 @@ Then:
 3. Build and publish multi-platform image: `make docker-buildx`
 4. Update the install manifest (`dist/install.yaml`): `make build-installer`
 
+To regenerate the Helm charts: `cat dist/install.yaml | helmify aws-iamra-manager`
+
 ## Getting Started
 
 ### Prerequisites

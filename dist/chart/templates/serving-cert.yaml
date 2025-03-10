@@ -1,0 +1,16 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ include "aws-iamra-manager.fullname" . }}-serving-cert
+  labels:
+  {{- include "aws-iamra-manager.labels" . | nindent 4 }}
+spec:
+  dnsNames:
+  - '{{ include "aws-iamra-manager.fullname" . }}-webhook-service.{{ .Release.Namespace
+    }}.svc'
+  - '{{ include "aws-iamra-manager.fullname" . }}-webhook-service.{{ .Release.Namespace
+    }}.svc.{{ .Values.kubernetesClusterDomain }}'
+  issuerRef:
+    kind: Issuer
+    name: '{{ include "aws-iamra-manager.fullname" . }}-selfsigned-issuer'
+  secretName: webhook-server-cert

@@ -5,6 +5,8 @@
 domain: dancav.io
 layout:
 - go.kubebuilder.io/v4
+plugins:
+  helm.kubebuilder.io/v1-alpha: {}
 projectName: aws-iamra-manager
 repo: dancav.io/aws-iamra-manager
 resources:

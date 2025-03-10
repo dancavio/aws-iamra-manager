@@ -1,0 +1,29 @@
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+metadata:
+  name: {{ include "aws-iamra-manager.fullname" . }}-validating-webhook-configuration
+  annotations:
+    cert-manager.io/inject-ca-from: {{ .Release.Namespace }}/{{ include "aws-iamra-manager.fullname" . }}-serving-cert
+  labels:
+  {{- include "aws-iamra-manager.labels" . | nindent 4 }}
+webhooks:
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: '{{ include "aws-iamra-manager.fullname" . }}-webhook-service'
+      namespace: '{{ .Release.Namespace }}'
+      path: /validate-cloud-dancav-io-v1-awsiamraroleprofile
+  failurePolicy: Fail
+  name: vawsiamraroleprofile-v1.kb.io
+  rules:
+  - apiGroups:
+    - cloud.dancav.io
+    apiVersions:
+    - v1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - awsiamraroleprofiles
+  sideEffects: None
