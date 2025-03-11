@@ -7,11 +7,11 @@ write_param() {
     local name=$1
     local value="${!name}"
     if [[ -n "$value" ]]; then
-        echo "$name=$value" >> "$CONFIG_FILEPATH"
+        echo "$name=$value" >>"$CONFIG_FILEPATH"
     fi
 }
 
-true > "$CONFIG_FILEPATH"
+true >"$CONFIG_FILEPATH"
 
 write_param "trust_anchor_arn"
 write_param "profile_arn"
