@@ -1,0 +1,13 @@
+apiVersion: v1
+entries:
+  aws-iamra-manager:
+  - apiVersion: v2
+    created: "2025-03-11T12:40:44.917453088Z"
+    description: A Helm chart for distributing aws-iamra-manager
+    digest: 3209b1dc6abb1ca7aa6e4d4806f07c275bbc4ce0b45bcf3dd931d2783bf19f9e
+    name: aws-iamra-manager
+    type: application
+    urls:
+    - aws-iamra-manager-1.0.0.tgz
+    version: 1.0.0
+generated: "2025-03-11T12:40:44.917025462Z"
