@@ -22,6 +22,7 @@ webhooks:
       operator: NotIn
       values:
       - aws-iamra-manager
+  reinvocationPolicy: IfNeeded
   rules:
   - apiGroups:
     - ""

@@ -62,6 +62,10 @@ Then:
 
 To regenerate the Helm charts: `cat dist/install.yaml | helmify aws-iamra-manager`
 
+To package a new version: `helm package dist/chart`
+
+Then move the .tgz under `docs/`, then `helm repo index docs`
+
 ## Getting Started
 
 ### Prerequisites

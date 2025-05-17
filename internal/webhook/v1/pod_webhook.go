@@ -60,7 +60,7 @@ func SetupPodWebhookWithManager(mgr ctrl.Manager) error {
 		Complete()
 }
 
-// +kubebuilder:webhook:path=/mutate--v1-pod,mutating=true,failurePolicy=fail,sideEffects=NoneOnDryRun,groups="",resources=pods,verbs=create,versions=v1,name=mpod-v1.kb.io,admissionReviewVersions=v1
+// +kubebuilder:webhook:path=/mutate--v1-pod,mutating=true,reinvocationPolicy=IfNeeded,failurePolicy=fail,sideEffects=NoneOnDryRun,groups="",resources=pods,verbs=create,versions=v1,name=mpod-v1.kb.io,admissionReviewVersions=v1
 
 // PodCustomDefaulter struct is responsible for setting default values on the custom resource of the
 // Kind Pod when those are created or updated.
@@ -81,7 +81,7 @@ func (d *PodCustomDefaulter) Default(ctx context.Context, obj runtime.Object) er
 		return fmt.Errorf("expected a Pod object but got %T", obj)
 	}
 
-	d.logger.Info("Defaulting for new pod")
+	d.logger.Info("Defaulting for new pod", "pod", pod.GenerateName)
 
 	if profileName, ok := pod.Annotations[v1.RoleProfilePodAnnotationKey]; ok {
 		d.logger.Info("Injecting AWS IAM RA credential server into new pod",
