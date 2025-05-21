@@ -37,6 +37,8 @@ const (
 	sidecarContainerImageEnvVar = "AWS_IAMRA_MANAGER_SIDECAR_IMAGE"
 	sidecarContainerName        = "aws-iamra-manager"
 	sidecarCertMountPath        = "/iamram/certs"
+	imdsEndpointEnvVar          = "AWS_EC2_METADATA_SERVICE_ENDPOINT"
+	imdsEndpoint                = "http://127.0.0.1:9911/"
 )
 
 var (
@@ -81,11 +83,9 @@ func (d *PodCustomDefaulter) Default(ctx context.Context, obj runtime.Object) er
 		return fmt.Errorf("expected a Pod object but got %T", obj)
 	}
 
-	d.logger.Info("Defaulting for new pod", "pod", pod.GenerateName)
-
 	if profileName, ok := pod.Annotations[v1.RoleProfilePodAnnotationKey]; ok {
-		d.logger.Info("Injecting AWS IAM RA credential server into new pod",
-			"profileName", profileName)
+		d.logger.Info("injecting AWS IAM RA credential server into new pod",
+			"profileName", profileName, "pod", pod.GenerateName)
 		return d.mutatePodSpec(ctx, pod, profileName)
 	}
 
@@ -98,29 +98,53 @@ func (d *PodCustomDefaulter) mutatePodSpec(ctx context.Context, pod *corev1.Pod,
 	if certSecretName, ok = pod.Annotations[v1.CertSecretPodAnnotationKey]; !ok {
 		return fmt.Errorf("must specify annotation %s", v1.CertSecretPodAnnotationKey)
 	}
-	pod.Spec.Volumes = append(pod.Spec.Volumes,
-		corev1.Volume{
-			Name: certSecretVolumeName,
-			VolumeSource: corev1.VolumeSource{
-				Secret: &corev1.SecretVolumeSource{
-					SecretName: certSecretName,
+	foundVol := false
+	for _, vol := range pod.Spec.Volumes {
+		if vol.Name == certSecretVolumeName {
+			foundVol = true
+			break
+		}
+	}
+	if !foundVol {
+		pod.Spec.Volumes = append(pod.Spec.Volumes,
+			corev1.Volume{
+				Name: certSecretVolumeName,
+				VolumeSource: corev1.VolumeSource{
+					Secret: &corev1.SecretVolumeSource{
+						SecretName: certSecretName,
+					},
 				},
 			},
-		},
-	)
+		)
+	}
 
 	for i := range pod.Spec.Containers {
 		container := &pod.Spec.Containers[i]
-		container.Env = append(container.Env, corev1.EnvVar{
-			Name:  "AWS_EC2_METADATA_SERVICE_ENDPOINT",
-			Value: "http://127.0.0.1:9911/",
-		})
+		foundEnv := false
+		for _, env := range container.Env {
+			if env.Name == imdsEndpointEnvVar {
+				foundEnv = true
+				break
+			}
+		}
+		if !foundEnv {
+			container.Env = append(container.Env, corev1.EnvVar{
+				Name:  imdsEndpointEnvVar,
+				Value: imdsEndpoint,
+			})
+		}
 	}
 
 	return d.injectSidecar(ctx, pod, profileName)
 }
 
 func (d *PodCustomDefaulter) injectSidecar(ctx context.Context, pod *corev1.Pod, profileName string) error {
+	for _, ctr := range pod.Spec.InitContainers {
+		if ctr.Name == sidecarContainerName {
+			return nil
+		}
+	}
+
 	profileNsName := types.NamespacedName{
 		Namespace: pod.Namespace,
 		Name:      profileName,
@@ -130,8 +154,6 @@ func (d *PodCustomDefaulter) injectSidecar(ctx context.Context, pod *corev1.Pod,
 		d.logger.Info("unable to fetch AwsIamRaRoleProfile")
 		return err
 	}
-	d.logger.Info("found AwsIamRaRoleProfile object, injecting sidecar now")
-
 	command := []string{
 		"serve-credentials",
 		"-t", string(profile.Spec.TrustAnchorArn),
